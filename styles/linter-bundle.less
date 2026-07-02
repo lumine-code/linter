@@ -51,12 +51,16 @@
 }
 
 .linter-status {
-  border-left: 2px solid transparent;
+  border-left: 2px solid @base-border-color;
   padding-left: 0.4em;
   transition: border-color 0.2s ease;
 
   &.project-mode {
     border-color: @text-color-highlight;
+  }
+
+  &.linting-disabled {
+    color: @text-color-subtle;
   }
 
   &.linter-status-hidden {

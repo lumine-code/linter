@@ -19,7 +19,7 @@
           {'label': 'Inspect Issue', 'command': 'linter-bundle:inspect'}
           {'type': 'separator'}
           {'label': 'Toggle Linter', 'command': 'linter-bundle:toggle-linter'}
-          {'label': 'Toggle Active Editor Linting', 'command': 'linter-bundle:state'}
+          {'label': 'Toggle Current File Linting', 'command': 'linter-bundle:toggle-current-file'}
         ]
       }
     ]
