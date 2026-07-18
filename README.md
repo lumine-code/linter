@@ -125,10 +125,18 @@ module.exports = {
 
 Provides MCP tools for [pulsar-mcp](https://github.com/asiloisad/pulsar-pulsar-mcp). The service currently exposes `GetLinterMessages`, a read-only tool that returns diagnostics from the linter panel.
 
-The tool follows the current linter panel view mode:
+With no arguments the tool follows the current linter panel view mode:
 
 - `file`: returns messages for the active editor,
 - `project`: returns all known messages across the project.
+
+The tool also accepts optional filters. When any of them is provided, the result is scoped from all known messages across the project, independent of UI focus or panel view mode (`mode` is `filter`). This lets callers target a file that is not the focused tab, or even a file that was never opened:
+
+- `filePath`: only messages for this file. Path separators and letter case are normalized, so `/` and `\` are treated as equal.
+- `severity`: only messages with this severity (`error`, `warning` or `info`).
+- `linterName`: only messages produced by this linter provider.
+
+Filters combine with AND, e.g. `{ filePath, severity: "error" }` returns only the errors for that file.
 
 Returned data has the shape:
 
