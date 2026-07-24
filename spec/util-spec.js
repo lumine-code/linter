@@ -1,5 +1,3 @@
-/* global describe, it, expect, advanceClock */
-
 const { unique, debounce } = require("../lib/util");
 
 // The linter dropped its lodash dependency in favour of these two helpers.

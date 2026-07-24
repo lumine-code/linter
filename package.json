@@ -10,6 +10,12 @@
   },
   "homepage": "https://github.com/lumine-code/linter#readme",
   "license": "MIT",
+  "files": [
+    "lib",
+    "keymaps",
+    "menus",
+    "styles"
+  ],
   "keywords": [
     "linter",
     "lint",
@@ -62,12 +68,16 @@
     "minimatch": "^10.1.1"
   },
   "devDependencies": {
-    "eslint": "^8.57.1",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.7.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-n": "^18.2.2",
+    "globals": "^17.7.0",
     "prettier": "^3.9.5"
   },
   "scripts": {
     "test": "cd ../lumine && npm run test:only -- ../linter/spec",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "format:check": "prettier --check ."
   },
   "configSchema": {

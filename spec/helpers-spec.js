@@ -1,5 +1,3 @@
-/* global describe, it, expect */
-
 const Helpers = require("../lib/helpers");
 
 describe("lib/helpers", () => {
