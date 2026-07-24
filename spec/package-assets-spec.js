@@ -35,8 +35,9 @@ describe("linter package assets", () => {
     expect(exists("styles/linter-bundle.less")).toBe(false);
     const css = read("styles/linter.css");
     expect(css).toContain("var(--");
-    expect(css).not.toContain('@import "ui-variables"');
+    // Check the code, not the explanatory header comment, for Less leftovers.
     const cssWithoutComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(cssWithoutComments).not.toContain('@import "ui-variables"');
     expect(cssWithoutComments).not.toMatch(/\bfade\(|\bcontrast\(|\blighten\(|\bdarken\(/);
   });
 
