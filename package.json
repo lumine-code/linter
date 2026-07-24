@@ -1,18 +1,23 @@
 {
-  "name": "linter-bundle",
+  "name": "linter",
+  "author": "lumine-code",
   "main": "./lib/main.js",
-  "version": "2.6.0",
+  "version": "3.0.0",
   "description": "A unified linting package that combines linting infrastructure with an integrated UI",
-  "repository": "https://github.com/asiloisad/pulsar-linter-bundle",
+  "repository": "https://github.com/lumine-code/linter",
+  "bugs": {
+    "url": "https://github.com/lumine-code/linter/issues"
+  },
+  "homepage": "https://github.com/lumine-code/linter#readme",
   "license": "MIT",
   "keywords": [
     "linter",
     "lint",
-    "pulsar",
-    "atom"
+    "diagnostics",
+    "lumine"
   ],
   "engines": {
-    "atom": ">=1.14.0 <3.0.0"
+    "atom": ">=1.100.0 <2.0.0"
   },
   "consumedServices": {
     "linter": {
@@ -52,10 +57,18 @@
     "core:loaded-shell-environment"
   ],
   "dependencies": {
-    "etch": "^0.14.1",
-    "lodash": "^4.17.21",
-    "minimatch": "^10.1.1",
-    "@asiloisad/select-list": "^1.6.0"
+    "@lumine-code/etch": "https://github.com/lumine-code/etch.git#ace74599f9d6b54e9eb24ecb1e2407e9c35fcc74",
+    "@lumine-code/select-list": "https://github.com/lumine-code/select-list.git#fbbc2d9660db6a2ff676c7a3baf7536f96ec34e6",
+    "minimatch": "^10.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "prettier": "^3.9.5"
+  },
+  "scripts": {
+    "test": "cd ../lumine && npm run test:only -- ../linter/spec",
+    "lint": "eslint .",
+    "format:check": "prettier --check ."
   },
   "configSchema": {
     "lintPreviewTabs": {

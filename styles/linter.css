@@ -1,4 +1,10 @@
-@import "ui-variables";
+/*
+ * Lumine exposes the editor UI theme variables as CSS custom properties
+ * (e.g. --text-color-error), so the Less @import "ui-variables" and @variable
+ * references are replaced with var(--*). Less colour helpers map to modern CSS:
+ *   fade(@c, N%)  -> rgb(from var(--c) r g b / 0.NN)
+ *   contrast(@c)  -> the relative-colour lightness-flip trick below.
+ */
 
 :root {
   --linter-dot-size: 4px;
@@ -9,19 +15,19 @@
   text-underline-offset: 0.25em;
 
   &.error {
-    text-decoration-color: @text-color-error;
+    text-decoration-color: var(--text-color-error);
   }
   &.warning {
-    text-decoration-color: @text-color-warning;
+    text-decoration-color: var(--text-color-warning);
   }
   &.info {
-    text-decoration-color: @text-color-info;
+    text-decoration-color: var(--text-color-info);
   }
 }
 
-// Gutter line-number styling for lines with linter messages
-// Uses radial-gradient instead of ::after pseudo-element to avoid
-// conflicts with other gutter decorations (e.g. git-line-removed)
+/* Gutter line-number styling for lines with linter messages.
+ * Uses radial-gradient instead of ::after pseudo-element to avoid
+ * conflicts with other gutter decorations (e.g. git-line-removed). */
 .linter-line-number {
   background-repeat: no-repeat;
   background-size: var(--linter-dot-size) var(--linter-dot-size);
@@ -30,37 +36,37 @@
   &.info:not(.warning):not(.error) {
     background-image: radial-gradient(
       circle,
-      @background-color-info calc(var(--linter-dot-size) / 2),
+      var(--background-color-info) calc(var(--linter-dot-size) / 2),
       transparent calc(var(--linter-dot-size) / 2)
     );
   }
   &.warning:not(.error) {
     background-image: radial-gradient(
       circle,
-      @background-color-warning calc(var(--linter-dot-size) / 2),
+      var(--background-color-warning) calc(var(--linter-dot-size) / 2),
       transparent calc(var(--linter-dot-size) / 2)
     );
   }
   &.error {
     background-image: radial-gradient(
       circle,
-      @background-color-error calc(var(--linter-dot-size) / 2),
+      var(--background-color-error) calc(var(--linter-dot-size) / 2),
       transparent calc(var(--linter-dot-size) / 2)
     );
   }
 }
 
 .linter-status {
-  border-left: 2px solid @base-border-color;
+  border-left: 2px solid var(--base-border-color);
   padding-left: 0.4em;
   transition: border-color 0.2s ease;
 
   &.project-mode {
-    border-color: @text-color-highlight;
+    border-color: var(--text-color-highlight);
   }
 
   &.linting-disabled {
-    color: @text-color-subtle;
+    color: var(--text-color-subtle);
   }
 
   &.linter-status-hidden {
@@ -72,13 +78,13 @@
   }
   a {
     &.text-error {
-      color: @text-color-error;
+      color: var(--text-color-error);
     }
     &.text-warning {
-      color: @text-color-warning;
+      color: var(--text-color-warning);
     }
     &.text-info {
-      color: @text-color-info;
+      color: var(--text-color-info);
     }
   }
   .icon::before {
@@ -104,7 +110,7 @@
 
     > thead {
       z-index: 3;
-      background-color: @background-color-highlight;
+      background-color: var(--background-color-highlight);
       flex: 0 0 auto;
     }
 
@@ -131,14 +137,14 @@
     th,
     td {
       padding: 0.3em 0.5em;
-      border: 1px solid @base-border-color;
+      border: 1px solid var(--base-border-color);
       border-top: 1px;
       p {
         margin-bottom: unset;
       }
     }
 
-    // Description header styling
+    /* Description header styling */
     th:last-child {
       display: flex;
       justify-content: space-between;
@@ -158,12 +164,12 @@
       transition: background-color 0.2s ease;
 
       &:hover {
-        background-color: fade(@text-color-highlight, 10%);
+        background-color: rgb(from var(--text-color-highlight) r g b / 0.1);
       }
 
       &.linter-header-active {
         font-weight: bold;
-        background-color: fade(@text-color-highlight, 15%);
+        background-color: rgb(from var(--text-color-highlight) r g b / 0.15);
       }
     }
 
@@ -192,19 +198,19 @@
         padding: 0 0.5em;
         cursor: pointer;
         user-select: none;
-        color: @text-color-subtle;
-        border-left: 1px solid @base-border-color;
+        color: var(--text-color-subtle);
+        border-left: 1px solid var(--base-border-color);
         transition:
           background-color 0.2s,
           color 0.15s ease;
 
         &:hover {
-          color: @text-color-highlight;
-          background-color: fade(@text-color-highlight, 10%);
+          color: var(--text-color-highlight);
+          background-color: rgb(from var(--text-color-highlight) r g b / 0.1);
         }
 
         &.active {
-          color: @text-color-highlight;
+          color: var(--text-color-highlight);
           font-weight: bold;
         }
       }
@@ -216,7 +222,7 @@
         margin: 0;
         width: 15px;
         cursor: pointer;
-        border-left: 1px solid @base-border-color;
+        border-left: 1px solid var(--base-border-color);
         font-size: 0.9em;
         transition: background-color 0.2s;
 
@@ -226,40 +232,40 @@
 
         &.error {
           &:hover {
-            background-color: fade(@text-color-error, 10%);
+            background-color: rgb(from var(--text-color-error) r g b / 0.1);
           }
           &:has(input:checked) {
-            background-color: fade(@text-color-error, 20%);
+            background-color: rgb(from var(--text-color-error) r g b / 0.2);
             font-weight: bold;
           }
           &:has(input:checked):hover {
-            background-color: fade(@text-color-error, 30%);
+            background-color: rgb(from var(--text-color-error) r g b / 0.3);
           }
         }
 
         &.warning {
           &:hover {
-            background-color: fade(@text-color-warning, 10%);
+            background-color: rgb(from var(--text-color-warning) r g b / 0.1);
           }
           &:has(input:checked) {
-            background-color: fade(@text-color-warning, 20%);
+            background-color: rgb(from var(--text-color-warning) r g b / 0.2);
             font-weight: bold;
           }
           &:has(input:checked):hover {
-            background-color: fade(@text-color-warning, 30%);
+            background-color: rgb(from var(--text-color-warning) r g b / 0.3);
           }
         }
 
         &.info {
           &:hover {
-            background-color: fade(@text-color-info, 10%);
+            background-color: rgb(from var(--text-color-info) r g b / 0.1);
           }
           &:has(input:checked) {
-            background-color: fade(@text-color-info, 20%);
+            background-color: rgb(from var(--text-color-info) r g b / 0.2);
             font-weight: bold;
           }
           &:has(input:checked):hover {
-            background-color: fade(@text-color-info, 30%);
+            background-color: rgb(from var(--text-color-info) r g b / 0.3);
           }
         }
       }
@@ -271,7 +277,7 @@
       text-overflow: ellipsis;
 
       .linter-file-path {
-        color: @text-color-subtle;
+        color: var(--text-color-subtle);
         display: inline-block;
         max-width: calc(100% - 4.5em);
         overflow: hidden;
@@ -282,7 +288,7 @@
       }
 
       .linter-file-line {
-        color: @text-color;
+        color: var(--text-color);
         white-space: nowrap;
       }
 
@@ -290,8 +296,8 @@
         margin-left: 0.5em;
         padding: 0 0.3em;
         font-size: 0.85em;
-        color: @text-color-subtle;
-        background-color: fade(@background-color-highlight, 50%);
+        color: var(--text-color-subtle);
+        background-color: rgb(from var(--background-color-highlight) r g b / 0.5);
         border-radius: 3px;
         cursor: pointer;
         text-decoration: none;
@@ -300,8 +306,8 @@
           color 0.15s ease;
 
         &:hover {
-          color: @text-color-highlight;
-          background-color: @background-color-highlight;
+          color: var(--text-color-highlight);
+          background-color: var(--background-color-highlight);
         }
       }
     }
@@ -312,47 +318,46 @@
 
       &:hover {
         &.error {
-          background-color: fade(@background-color-error, 8%);
+          background-color: rgb(from var(--background-color-error) r g b / 0.08);
         }
         &.warning {
-          background-color: fade(@background-color-warning, 8%);
+          background-color: rgb(from var(--background-color-warning) r g b / 0.08);
         }
         &.info {
-          background-color: fade(@background-color-info, 8%);
+          background-color: rgb(from var(--background-color-info) r g b / 0.08);
         }
       }
 
       &.current {
         &.error {
-          background-color: fade(@background-color-error, 25%);
+          background-color: rgb(from var(--background-color-error) r g b / 0.25);
         }
         &.warning {
-          background-color: fade(@background-color-warning, 25%);
+          background-color: rgb(from var(--background-color-warning) r g b / 0.25);
         }
         &.info {
-          background-color: fade(@background-color-info, 25%);
+          background-color: rgb(from var(--background-color-info) r g b / 0.25);
         }
 
         &:hover {
           &.error {
-            background-color: fade(@background-color-error, 30%);
+            background-color: rgb(from var(--background-color-error) r g b / 0.3);
           }
           &.warning {
-            background-color: fade(@background-color-warning, 30%);
+            background-color: rgb(from var(--background-color-warning) r g b / 0.3);
           }
           &.info {
-            background-color: fade(@background-color-info, 30%);
+            background-color: rgb(from var(--background-color-info) r g b / 0.3);
           }
         }
       }
-
     }
   }
 
   &:focus-within {
     .linter-table {
       .linter-row.focused {
-        outline: 1px dotted @text-color-highlight;
+        outline: 1px dotted var(--text-color-highlight);
         outline-offset: -2px;
       }
     }
@@ -363,8 +368,8 @@
   position: fixed;
   max-width: 600px;
   z-index: 1000;
-  background-color: @base-background-color;
-  border: 1px solid @base-border-color;
+  background-color: var(--base-background-color);
+  border: 1px solid var(--base-border-color);
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   font-size: 0.9em;
@@ -372,7 +377,7 @@
   flex-direction: column;
   overflow: hidden;
 
-  // Animation
+  /* Animation */
   opacity: 0;
   transform: translateY(4px);
   transition:
@@ -390,33 +395,37 @@
   }
 
   &.error {
-    border-color: @background-color-error;
+    border-color: var(--background-color-error);
   }
   &.warning {
-    border-color: @background-color-warning;
+    border-color: var(--background-color-warning);
   }
   &.info {
-    border-color: @background-color-info;
+    border-color: var(--background-color-info);
   }
 
   .linter-bubble-item {
     display: flex;
 
     &:not(:last-child) {
-      border-bottom: 1px solid @base-border-color;
+      border-bottom: 1px solid var(--base-border-color);
     }
 
+    /* contrast(@bg): flip the sidebar text to black or white depending on the
+     * background lightness. In relative-colour syntax `l` is the origin
+     * lightness (0-100); multiplying its distance from mid-grey by infinity
+     * clamps the result to 0 or 100. */
     &.error .linter-bubble-sidebar {
-      background-color: @background-color-error;
-      color: contrast(@background-color-error);
+      background-color: var(--background-color-error);
+      color: hsl(from var(--background-color-error) 0 0 calc((50 - l) * infinity));
     }
     &.warning .linter-bubble-sidebar {
-      background-color: @background-color-warning;
-      color: contrast(@background-color-warning);
+      background-color: var(--background-color-warning);
+      color: hsl(from var(--background-color-warning) 0 0 calc((50 - l) * infinity));
     }
     &.info .linter-bubble-sidebar {
-      background-color: @background-color-info;
-      color: contrast(@background-color-info);
+      background-color: var(--background-color-info);
+      color: hsl(from var(--background-color-info) 0 0 calc((50 - l) * infinity));
     }
   }
 
@@ -438,7 +447,7 @@
     }
 
     code {
-      background-color: @background-color-highlight;
+      background-color: var(--background-color-highlight);
       padding: 1px 4px;
       border-radius: 2px;
     }
@@ -448,8 +457,8 @@
       margin-top: 6px;
       padding: 2px 6px;
       font-size: 0.85em;
-      color: @text-color-subtle;
-      background-color: fade(@background-color-highlight, 50%);
+      color: var(--text-color-subtle);
+      background-color: rgb(from var(--background-color-highlight) r g b / 0.5);
       border-radius: 3px;
       cursor: pointer;
       text-decoration: none;
@@ -458,8 +467,8 @@
         color 0.15s ease;
 
       &:hover {
-        color: @text-color-highlight;
-        background-color: @background-color-highlight;
+        color: var(--text-color-highlight);
+        background-color: var(--background-color-highlight);
       }
     }
   }
