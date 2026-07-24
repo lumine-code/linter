@@ -1,9 +1,9 @@
 /*
  * Lumine exposes the editor UI theme variables as CSS custom properties
- * (e.g. --text-color-error), so the Less @import "ui-variables" and @variable
- * references are replaced with var(--*). Less colour helpers map to modern CSS:
- *   fade(@c, N%)  -> rgb(from var(--c) r g b / 0.NN)
- *   contrast(@c)  -> the relative-colour lightness-flip trick below.
+ * (e.g. --text-color-error). The old ui-variables Less import and its
+ * @-prefixed variable references become var(--*); Less colour helpers map to
+ * modern CSS: the fade() helper becomes rgb(from var(--c) r g b / 0.NN), and
+ * the contrast() helper becomes the relative-colour lightness-flip trick below.
  */
 
 :root {
