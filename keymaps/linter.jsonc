@@ -1,0 +1,18 @@
+{
+  // Focus the linter panel (or return focus to the editor when already focused).
+  "atom-workspace": {
+    "alt-l": "linter:toggle-focus",
+  },
+  // Step through messages in the active editor.
+  "atom-text-editor:not([mini])": {
+    "alt-;": "linter:previous",
+    "alt-'": "linter:next",
+  },
+  // Keyboard navigation while the panel itself is focused.
+  ".linter-wrapper": {
+    "up": "core:move-up",
+    "down": "core:move-down",
+    "enter": "core:confirm",
+    "escape": "core:cancel",
+  },
+}

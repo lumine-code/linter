@@ -1,7 +1,9 @@
 {
+  // Right-click an editor to inspect the message under the cursor.
   "context-menu": {
-    "atom-text-editor:not([mini])": [{ "label": "Inspect issue", "command": "linter:inspect" }]
+    "atom-text-editor:not([mini])": [{ "label": "Inspect issue", "command": "linter:inspect" }],
   },
+  // Packages > Linter menu.
   "menu": [
     {
       "label": "Packages",
@@ -18,10 +20,10 @@
             { "label": "Inspect Issue", "command": "linter:inspect" },
             { "type": "separator" },
             { "label": "Toggle Linter", "command": "linter:toggle-linter" },
-            { "label": "Toggle Current File Linting", "command": "linter:toggle-current-file" }
-          ]
-        }
-      ]
-    }
-  ]
+            { "label": "Toggle Current File Linting", "command": "linter:toggle-current-file" },
+          ],
+        },
+      ],
+    },
+  ],
 }
