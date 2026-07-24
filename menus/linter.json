@@ -1,0 +1,27 @@
+{
+  "context-menu": {
+    "atom-text-editor:not([mini])": [{ "label": "Inspect issue", "command": "linter:inspect" }]
+  },
+  "menu": [
+    {
+      "label": "Packages",
+      "submenu": [
+        {
+          "label": "Linter",
+          "submenu": [
+            { "label": "Lint", "command": "linter:lint" },
+            { "label": "Debug", "command": "linter:debug" },
+            { "type": "separator" },
+            { "label": "Toggle Panel", "command": "linter:toggle-panel" },
+            { "label": "Next Issue", "command": "linter:next" },
+            { "label": "Previous Issue", "command": "linter:previous" },
+            { "label": "Inspect Issue", "command": "linter:inspect" },
+            { "type": "separator" },
+            { "label": "Toggle Linter", "command": "linter:toggle-linter" },
+            { "label": "Toggle Current File Linting", "command": "linter:toggle-current-file" }
+          ]
+        }
+      ]
+    }
+  ]
+}

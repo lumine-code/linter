@@ -1,72 +1,63 @@
-# linter-bundle
+# linter
 
 A unified linting package that combines linting infrastructure with an integrated UI.
-
-![panel](https://github.com/asiloisad/pulsar-linter-bundle/blob/master/assets/panel.png?raw=true)
 
 Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](https://github.com/steelbrain/linter-ui-default).
 
 ## Features
 
-- **Unified Package**: Combines linter core functionality with UI in a single package.
-- **Status Bar Integration**: Shows error, warning, and info counts in the status bar. Left-click toggles panel, middle-click toggles file/project mode, Ctrl+middle-click clears messages, right-click jumps to next, Ctrl+right-click jumps to previous.
-- **Linter Panel**: Sortable table view of all linter messages with filtering. Supports keyboard navigation when focused.
-- **Inline Bubbles**: Hover-style message display at cursor position.
-- **Editor Highlighting**: Underline and highlight decorations for linted ranges.
-- **Multiple Sort Methods**: Sort by severity, position, or provider. Cell index is used as a primary sort key for notebook messages.
-- **Linter Management**: Enable/disable individual linter providers.
-- **Jupyter Notebook support**: Works with `.ipynb` files via the `linter-adapter` service. Messages are mapped to individual cells and the panel shows `[cell]:line:col` position.
-- **Scrollmap**: Shows linter markers in the scrollbar via [scrollmap](https://github.com/asiloisad/pulsar-scrollmap).
-- **Reference links**: Clickable references in messages to open related files. See [latex-tools](https://github.com/asiloisad/pulsar-latex-tools) for usage example.
-- **Markdown rendering**: Message excerpts support markdown formatting in tooltips and panel.
-- **MCP Tool**: Provides `GetLinterMessages` tool via [pulsar-mcp](https://github.com/asiloisad/pulsar-pulsar-mcp).
+- **Unified package**: combines linter core functionality with UI in a single package.
+- **Status bar integration**: shows error, warning, and info counts in the status bar. Left-click toggles the panel, middle-click toggles file/project mode, Ctrl+middle-click clears messages, right-click jumps to next, Ctrl+right-click jumps to previous.
+- **Linter panel**: sortable table view of all linter messages with filtering, and keyboard navigation when focused.
+- **Inline bubbles**: hover-style message display at the cursor position.
+- **Editor highlighting**: underline and gutter decorations for linted ranges.
+- **Multiple sort methods**: sort by severity, position, or provider. Cell index is used as a primary sort key for notebook messages.
+- **Linter management**: enable or disable individual linter providers.
+- **Jupyter notebook support**: works with `.ipynb` files through the `linter-adapter` service. Messages are mapped to individual cells and the panel shows `[cell]:line:col` position.
+- **Scrollmap markers**: exposes linter markers to scrollbar-overview packages through the `linter-ui` service.
+- **Reference links**: clickable references in messages open related files.
+- **Markdown rendering**: message excerpts support markdown formatting in tooltips and the panel.
+- **MCP tool**: provides a read-only `GetLinterMessages` tool through the `mcp-tools` service.
 
 ## Installation
 
-To install `linter-bundle` search for [linter-bundle](https://web.pulsar-edit.dev/packages/linter-bundle) in the Install pane of the Pulsar settings or run `ppm install linter-bundle`. Alternatively, you can run `ppm install asiloisad/pulsar-linter-bundle` to install a package directly from the GitHub repository.
+To install `linter`, clone this repository into your Lumine packages directory (`~/.lumine/packages/linter`) and restart Lumine. If it is listed in your configured package sources, it can also be installed from the Install pane of the Lumine settings.
 
 ## Commands
 
 Commands available in `atom-workspace`:
 
-- `linter-bundle:toggle-focus`: focus the panel (or return focus to the editor if already focused), opening the panel if needed,
-- `linter-bundle:toggle-panel`: toggle the linter panel visibility,
-- `linter-bundle:toggle-linter`: toggle a linter provider on/off,
-- `linter-bundle:toggle-current-file`: toggle linting for the current file,
-- `linter-bundle:lint`: manually trigger linting on the current file,
-- `linter-bundle:debug`: show debug information about active linters,
-- `linter-bundle:state`: toggle linting for the current file (legacy alias),
-- `linter-bundle:inspect`: show message bubble at cursor position,
-- `linter-bundle:next`: jump to next linter message,
-- `linter-bundle:previous`: jump to previous linter message,
-- `linter-bundle:clear`: clear linter messages for the current editor.
+- `linter:toggle-focus`: focus the panel (or return focus to the editor if already focused), opening the panel if needed,
+- `linter:toggle-panel`: toggle the linter panel visibility,
+- `linter:toggle-linter`: toggle a linter provider on/off,
+- `linter:toggle-current-file`: toggle linting for the current file,
+- `linter:lint`: manually trigger linting on the current file,
+- `linter:debug`: show debug information about active linters,
+- `linter:state`: toggle linting for the current file (legacy alias),
+- `linter:inspect`: show the message bubble at the cursor position,
+- `linter:next`: jump to the next linter message,
+- `linter:previous`: jump to the previous linter message,
+- `linter:clear`: clear linter messages for the current editor.
 
 ## Customization
 
-The style can be adjusted according to user preferences in the `styles.less` file:
+The styling can be adjusted in your Lumine stylesheet:
 
-- e.g. solid underline instead of wavy:
+- e.g. a solid underline instead of a dashed one:
 
-```less
+```css
 .linter-text {
-  &.error {
-    background-image: none;
-    border-bottom: 1px solid @text-color-error;
-  }
-  &.warning {
-    background-image: none;
-    border-bottom: 1px solid @text-color-warning;
-  }
+  &.error,
+  &.warning,
   &.info {
-    background-image: none;
-    border-bottom: 1px solid @text-color-info;
+    text-decoration-style: solid;
   }
 }
 ```
 
-- e.g. change gutter dot size:
+- e.g. change the gutter dot size:
 
-```less
+```css
 :root {
   --linter-dot-size: 6px;
 }
@@ -111,9 +102,7 @@ module.exports = {
     ]);
 
     // Or set all messages at once
-    indie.setAllMessages([
-      /* messages */
-    ]);
+    indie.setAllMessages([/* messages */]);
 
     // Clear all messages
     indie.clearMessages();
@@ -123,7 +112,7 @@ module.exports = {
 
 ## Provided Service `mcp-tools`
 
-Provides MCP tools for [pulsar-mcp](https://github.com/asiloisad/pulsar-pulsar-mcp). The service currently exposes `GetLinterMessages`, a read-only tool that returns diagnostics from the linter panel.
+Provides MCP tools for a connected MCP host. The service currently exposes `GetLinterMessages`, a read-only tool that returns diagnostics from the linter panel.
 
 With no arguments the tool follows the current linter panel view mode:
 
@@ -259,7 +248,7 @@ module.exports = {
 
 ## Consumed Service `linter-ui`
 
-External UI providers that want to display linter messages. Used by packages like scrollmap to show linter markers on the scrollbar.
+External UI providers that want to display linter messages. Used by scrollbar-overview packages to show linter markers.
 
 ```javascript
 // UI provider example

@@ -1,0 +1,15 @@
+{
+  "atom-workspace": {
+    "alt-l": "linter:toggle-focus"
+  },
+  "atom-text-editor:not([mini])": {
+    "alt-;": "linter:previous",
+    "alt-'": "linter:next"
+  },
+  ".linter-wrapper": {
+    "up": "core:move-up",
+    "down": "core:move-down",
+    "enter": "core:confirm",
+    "escape": "core:cancel"
+  }
+}
