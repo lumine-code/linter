@@ -61,11 +61,11 @@ Override the package custom properties in your `styles.css`, or restyle the deco
 
 ## Services
 
-- **linter-indie** (`2.0.0`): provided to let packages push messages directly without implementing a full linter provider.
+- **linter-indie** (`1.0.0`): provided to let packages push messages directly without implementing a full linter provider.
 - **mcp-tools** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
-- **linter** (`2.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
-- **linter-ui** (`1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.
-- **linter-adapter** (`1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
+- **linter** (`^1.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
+- **linter-ui** (`^1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.
+- **linter-adapter** (`^1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
 - **status-bar** (`^1.0.0`): consumed to display the error, warning, and info counts.
 
 ## Integration
