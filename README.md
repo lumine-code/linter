@@ -21,7 +21,7 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 
 ## Installation
 
-To install `linter` search for *linter* in the Install pane of the Lumine settings or run `lumine --install lumine-code/linter`.
+To install `linter` search for _linter_ in the Install pane of the Lumine settings or run `lumine --install lumine-code/linter`.
 
 ## Commands
 
