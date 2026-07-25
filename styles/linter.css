@@ -3,7 +3,7 @@
  * (e.g. --text-color-error). The old ui-variables Less import and its
  * @-prefixed variable references become var(--*); Less colour helpers map to
  * modern CSS: the fade() helper becomes rgb(from var(--c) r g b / 0.NN), and
- * the contrast() helper becomes the relative-colour lightness-flip trick below.
+ * the contrast() helper becomes core's --text-color-on-* variables.
  */
 
 :root {
@@ -411,21 +411,22 @@
       border-bottom: 1px solid var(--base-border-color);
     }
 
-    /* contrast(@bg): flip the sidebar text to black or white depending on the
-     * background lightness. In relative-colour syntax `l` is the origin
-     * lightness (0-100); multiplying its distance from mid-grey by infinity
-     * clamps the result to 0 or 100. */
+    /* contrast(@bg): core already derives readable text for each of the
+     * severity backgrounds in base-variables.css, flipping on perceptual (LCH)
+     * lightness. Do not re-derive it from sRGB HSL lightness here — themes
+     * pick saturated reds and blues that sit at exactly hsl l 50%, where the
+     * flip degenerates to 0 * infinity = NaN and the label loses contrast. */
     &.error .linter-bubble-sidebar {
       background-color: var(--background-color-error);
-      color: hsl(from var(--background-color-error) 0 0 calc((50 - l) * infinity));
+      color: var(--text-color-on-error);
     }
     &.warning .linter-bubble-sidebar {
       background-color: var(--background-color-warning);
-      color: hsl(from var(--background-color-warning) 0 0 calc((50 - l) * infinity));
+      color: var(--text-color-on-warning);
     }
     &.info .linter-bubble-sidebar {
       background-color: var(--background-color-info);
-      color: hsl(from var(--background-color-info) 0 0 calc((50 - l) * infinity));
+      color: var(--text-color-on-info);
     }
   }
 
