@@ -2,7 +2,7 @@
   "name": "linter",
   "author": "lumine-code",
   "main": "./lib/main.js",
-  "version": "3.0.0",
+  "version": "1.0.0",
   "description": "A unified linting package that combines linting infrastructure with an integrated UI",
   "repository": "https://github.com/lumine-code/linter",
   "bugs": {
@@ -28,12 +28,12 @@
   "consumedServices": {
     "linter": {
       "versions": {
-        "2.0.0": "consumeLinter"
+        "^1.0.0": "consumeLinter"
       }
     },
     "linter-ui": {
       "versions": {
-        "1.0.0": "consumeLinterUI"
+        "^1.0.0": "consumeLinterUI"
       }
     },
     "status-bar": {
@@ -43,14 +43,14 @@
     },
     "linter-adapter": {
       "versions": {
-        "1.0.0": "consumeItemLinterAdapter"
+        "^1.0.0": "consumeItemLinterAdapter"
       }
     }
   },
   "providedServices": {
     "linter-indie": {
       "versions": {
-        "2.0.0": "provideIndie"
+        "1.0.0": "provideIndie"
       }
     },
     "mcp-tools": {
