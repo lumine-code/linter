@@ -7,7 +7,7 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 ## Features
 
 - **Unified package**: combines linter core functionality with UI in a single package.
-- **Status bar integration**: shows error, warning, and info counts in the status bar. Left-click toggles the panel, middle-click toggles file/project mode, Ctrl+middle-click clears messages, right-click jumps to next, Ctrl+right-click jumps to previous.
+- **Status bar integration**: shows error, warning, and info counts in the status bar, with mouse shortcuts for toggling the panel and stepping through messages.
 - **Linter panel**: sortable table view of all linter messages with filtering, and keyboard navigation when focused.
 - **Inline bubbles**: hover-style message display at the cursor position.
 - **Editor highlighting**: underline and gutter decorations for linted ranges.
@@ -21,7 +21,7 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 
 ## Installation
 
-To install `linter`, clone this repository into your Lumine packages directory (`~/.lumine/packages/linter`) and restart Lumine. If it is listed in your configured package sources, it can also be installed from the Install pane of the Lumine settings.
+To install `linter` search for *linter* in the Install pane of the Lumine settings or run `lumine --install lumine-code/linter`.
 
 ## Commands
 
@@ -31,6 +31,8 @@ Commands available in `atom-workspace`:
 - `linter:toggle-panel`: toggle the linter panel visibility,
 - `linter:toggle-linter`: toggle a linter provider on/off,
 - `linter:toggle-current-file`: toggle linting for the current file,
+- `linter:file-mode`: show only the messages of the active editor in the panel,
+- `linter:project-mode`: show the messages of the whole project in the panel,
 - `linter:lint`: manually trigger linting on the current file,
 - `linter:debug`: show debug information about active linters,
 - `linter:state`: toggle linting for the current file (legacy alias),
@@ -41,11 +43,13 @@ Commands available in `atom-workspace`:
 
 ## Customization
 
-The styling can be adjusted in your Lumine stylesheet:
-
-- e.g. a solid underline instead of a dashed one:
+Override the package custom properties in your `styles.css`, or restyle the decorations directly:
 
 ```css
+:root {
+  --linter-dot-size: 6px;
+}
+
 .linter-text {
   &.error,
   &.warning,
@@ -55,15 +59,18 @@ The styling can be adjusted in your Lumine stylesheet:
 }
 ```
 
-- e.g. change the gutter dot size:
+## Services
 
-```css
-:root {
-  --linter-dot-size: 6px;
-}
-```
+- **linter-indie** (`2.0.0`): provided to let packages push messages directly without implementing a full linter provider.
+- **mcp-tools** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
+- **linter** (`2.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
+- **linter-ui** (`1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.
+- **linter-adapter** (`1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
+- **status-bar** (`^1.0.0`): consumed to display the error, warning, and info counts.
 
-## Provided Service `linter-indie`
+## Integration
+
+### `linter-indie`
 
 Indie linter delegate for custom integrations. Allows packages to push linter messages directly without implementing the full linter provider interface.
 
@@ -110,7 +117,7 @@ module.exports = {
 };
 ```
 
-## Provided Service `mcp-tools`
+### `mcp-tools`
 
 Provides MCP tools for a connected MCP host. The service currently exposes `GetLinterMessages`, a read-only tool that returns diagnostics from the linter panel.
 
@@ -163,7 +170,7 @@ In `package.json` this service is provided as:
 }
 ```
 
-## Consumed Service `linter-adapter`
+### `linter-adapter`
 
 Allows non-TextEditor pane items (such as Jupyter notebooks) to integrate with the linter panel. The adapter maps linter messages to the correct item, handles navigation, and provides cursor-aware message lookup.
 
@@ -213,7 +220,7 @@ module.exports = {
 };
 ```
 
-## Consumed Service `linter`
+### `linter`
 
 Standard linter provider interface. Packages like `linter-eslint`, `linter-ruff`, etc. provide this service to report diagnostics.
 
@@ -246,7 +253,7 @@ module.exports = {
 };
 ```
 
-## Consumed Service `linter-ui`
+### `linter-ui`
 
 External UI providers that want to display linter messages. Used by scrollbar-overview packages to show linter markers.
 
