@@ -1,6 +1,6 @@
 # linter
 
-A unified linting package that combines linting infrastructure with an integrated UI.
+Linting infrastructure with an integrated UI.
 
 Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](https://github.com/steelbrain/linter-ui-default).
 
