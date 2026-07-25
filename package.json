@@ -84,41 +84,35 @@
     "lintPreviewTabs": {
       "description": "Lint tabs while they are still in preview status",
       "type": "boolean",
-      "order": 1,
       "default": true
     },
     "lintOnOpen": {
       "title": "Lint on Open",
       "description": "Lint files automatically when they are opened",
       "type": "boolean",
-      "order": 2,
       "default": true
     },
     "lintOnChange": {
       "title": "Lint on Change",
       "description": "Lint files while typing, without the need to save (only for supported providers)",
       "type": "boolean",
-      "order": 3,
       "default": true
     },
     "lintOnChangeInterval": {
       "title": "Lint on Change Interval",
       "description": "Interval at which linting is done as you type (in ms)",
       "type": "integer",
-      "order": 4,
       "default": 300
     },
     "ignoreGlob": {
       "title": "Ignore files matching this Glob",
       "type": "string",
-      "order": 5,
       "default": "**/*.min.{js,css}"
     },
     "disabledProviders": {
       "title": "Disabled providers",
       "description": "Names of disabled linter providers",
       "type": "array",
-      "order": 6,
       "items": {
         "type": "string"
       },
@@ -128,7 +122,6 @@
       "title": "Default Sort Method",
       "description": "Choose the default sorting method for linter messages",
       "type": "string",
-      "order": 7,
       "enum": [
         {
           "value": "position",
@@ -149,14 +142,12 @@
       "title": "Show Hover Tooltip",
       "description": "Show linter messages when hovering over issues in the editor",
       "type": "boolean",
-      "order": 8,
       "default": true
     },
     "largeFileLineCount": {
       "title": "Large File Line Count",
       "description": "Skip inline decorations for files with more lines than this (panel still works)",
       "type": "integer",
-      "order": 9,
       "minimum": 1000,
       "default": 20000
     },
@@ -164,7 +155,6 @@
       "title": "Long Line Length",
       "description": "Skip inline decorations if any line exceeds this length",
       "type": "integer",
-      "order": 10,
       "minimum": 500,
       "default": 4000
     },
@@ -172,14 +162,12 @@
       "title": "Status-bar item always visible",
       "description": "When disabled, the status-bar item is hidden while there are no messages",
       "type": "boolean",
-      "order": 11,
       "default": true
     },
     "editorScrollPosition": {
       "title": "Editor scroll position",
       "description": "Scroll zone as % of viewport height. Single value e.g. `0` is strict mode (always scroll cursor to that position). Two values e.g. `0-50` define a lazy zone (scroll only when cursor exits the zone). 0 = top margin, 100 = bottom margin.",
       "type": "string",
-      "order": 12,
       "default": "0-50"
     }
   }
