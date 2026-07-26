@@ -66,7 +66,7 @@ describe("linter package assets", () => {
     const pkg = JSON.parse(read("package.json"));
     expect(pkg.providedServices["linter.registry"].versions["1.0.0"]).toBe("provideLinterRegistry");
     expect(pkg.providedServices["intentions.list"].versions["1.0.0"]).toBe("provideIntentionsList");
-    expect(pkg.providedServices["mcp-tools"].versions["1.0.0"]).toBe("provideMcpTools");
+    expect(pkg.providedServices["mcp.tools"].versions["1.0.0"]).toBe("provideMcpTools");
     expect(pkg.consumedServices["linter.provider"].versions["^1.0.0"]).toBe("consumeLinter");
     expect(pkg.consumedServices["linter.ui"].versions["^1.0.0"]).toBe("consumeLinterUI");
     expect(pkg.consumedServices["linter.adapter"].versions["^1.0.0"]).toBe("consumeLinterAdapter");

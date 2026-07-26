@@ -17,7 +17,7 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 - **Scrollmap markers**: exposes linter markers to scrollbar-overview packages through the `linter.ui` service.
 - **Reference links**: clickable references in messages open related files.
 - **Markdown rendering**: message excerpts support markdown formatting in tooltips and the panel.
-- **MCP tool**: provides a read-only `GetLinterMessages` tool through the `mcp-tools` service.
+- **MCP tool**: provides a read-only `GetLinterMessages` tool through the `mcp.tools` service.
 
 ## Installation
 
@@ -63,7 +63,7 @@ Override the package custom properties in your `styles.css`, or restyle the deco
 
 - **linter.registry** (`1.0.0`): provided to let packages push messages directly without implementing a full linter provider.
 - **intentions.list** (`1.0.0`): provided to expose message solutions as quick-fix code actions at the cursor.
-- **mcp-tools** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
+- **mcp.tools** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
 - **linter.provider** (`^1.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
 - **linter.ui** (`^1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.
 - **linter.adapter** (`^1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
@@ -118,7 +118,7 @@ module.exports = {
 };
 ```
 
-### `mcp-tools`
+### `mcp.tools`
 
 Provides MCP tools for a connected MCP host. The service currently exposes `GetLinterMessages`, a read-only tool that returns diagnostics from the linter panel.
 
@@ -162,7 +162,7 @@ In `package.json` this service is provided as:
 ```json
 {
   "providedServices": {
-    "mcp-tools": {
+    "mcp.tools": {
       "versions": {
         "1.0.0": "provideMcpTools"
       }
