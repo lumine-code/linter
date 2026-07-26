@@ -59,7 +59,7 @@
         "1.0.0": "provideIntentionsList"
       }
     },
-    "mcp-tools": {
+    "mcp.tools": {
       "versions": {
         "1.0.0": "provideMcpTools"
       }
