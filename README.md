@@ -62,6 +62,7 @@ Override the package custom properties in your `styles.css`, or restyle the deco
 ## Services
 
 - **linter-indie** (`1.0.0`): provided to let packages push messages directly without implementing a full linter provider.
+- **intentions.list** (`1.0.0`): provided to expose message solutions as quick-fix code actions at the cursor.
 - **mcp-tools** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
 - **linter** (`^1.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
 - **linter-ui** (`^1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.

@@ -54,6 +54,11 @@
         "1.0.0": "provideIndie"
       }
     },
+    "intentions.list": {
+      "versions": {
+        "1.0.0": "provideIntentions"
+      }
+    },
     "mcp-tools": {
       "versions": {
         "1.0.0": "provideMcpTools"
