@@ -13,8 +13,8 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 - **Editor highlighting**: underline and gutter decorations for linted ranges.
 - **Multiple sort methods**: sort by severity, position, or provider. Cell index is used as a primary sort key for notebook messages.
 - **Linter management**: enable or disable individual linter providers.
-- **Jupyter notebook support**: works with `.ipynb` files through the `linter-adapter` service. Messages are mapped to individual cells and the panel shows `[cell]:line:col` position.
-- **Scrollmap markers**: exposes linter markers to scrollbar-overview packages through the `linter-ui` service.
+- **Jupyter notebook support**: works with `.ipynb` files through the `linter.adapter` service. Messages are mapped to individual cells and the panel shows `[cell]:line:col` position.
+- **Scrollmap markers**: exposes linter markers to scrollbar-overview packages through the `linter.ui` service.
 - **Reference links**: clickable references in messages open related files.
 - **Markdown rendering**: message excerpts support markdown formatting in tooltips and the panel.
 - **MCP tool**: provides a read-only `GetLinterMessages` tool through the `mcp-tools` service.
@@ -61,17 +61,17 @@ Override the package custom properties in your `styles.css`, or restyle the deco
 
 ## Services
 
-- **linter-indie** (`1.0.0`): provided to let packages push messages directly without implementing a full linter provider.
+- **linter.registry** (`1.0.0`): provided to let packages push messages directly without implementing a full linter provider.
 - **intentions.list** (`1.0.0`): provided to expose message solutions as quick-fix code actions at the cursor.
 - **mcp-tools** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
-- **linter** (`^1.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
-- **linter-ui** (`^1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.
-- **linter-adapter** (`^1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
+- **linter.provider** (`^1.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
+- **linter.ui** (`^1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.
+- **linter.adapter** (`^1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
 - **status-bar** (`^1.0.0`): consumed to display the error, warning, and info counts.
 
 ## Integration
 
-### `linter-indie`
+### `linter.registry`
 
 Indie linter delegate for custom integrations. Allows packages to push linter messages directly without implementing the full linter provider interface.
 
@@ -80,8 +80,8 @@ In your `package.json`:
 ```json
 {
   "consumedServices": {
-    "linter-indie": {
-      "versions": { "2.0.0": "consumeIndie" }
+    "linter.registry": {
+      "versions": { "^1.0.0": "consumeLinterRegistry" }
     }
   }
 }
@@ -91,7 +91,7 @@ In your main module:
 
 ```javascript
 module.exports = {
-  consumeIndie(registerIndie) {
+  consumeLinterRegistry(registerIndie) {
     const indie = registerIndie({ name: "my-indie-linter" });
 
     // Set messages for a specific file
@@ -171,7 +171,7 @@ In `package.json` this service is provided as:
 }
 ```
 
-### `linter-adapter`
+### `linter.adapter`
 
 Allows non-TextEditor pane items (such as Jupyter notebooks) to integrate with the linter panel. The adapter maps linter messages to the correct item, handles navigation, and provides cursor-aware message lookup.
 
@@ -180,9 +180,9 @@ In your `package.json`:
 ```json
 {
   "providedServices": {
-    "linter-adapter": {
+    "linter.adapter": {
       "versions": {
-        "1.0.0": "provideLinterItemAdapter"
+        "1.0.0": "provideLinterAdapter"
       }
     }
   }
@@ -193,7 +193,7 @@ In your main module:
 
 ```javascript
 module.exports = {
-  provideLinterItemAdapter() {
+  provideLinterAdapter() {
     return {
       // Return true if this adapter handles the given pane item
       handlesItem: (item) => item instanceof MyCustomEditor,
@@ -221,7 +221,7 @@ module.exports = {
 };
 ```
 
-### `linter`
+### `linter.provider`
 
 Standard linter provider interface. Packages like `linter-eslint`, `linter-ruff`, etc. provide this service to report diagnostics.
 
@@ -254,7 +254,7 @@ module.exports = {
 };
 ```
 
-### `linter-ui`
+### `linter.ui`
 
 External UI providers that want to display linter messages. Used by scrollbar-overview packages to show linter markers.
 

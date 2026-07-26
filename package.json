@@ -27,12 +27,12 @@
     "atom": ">=1.100.0 <2.0.0"
   },
   "consumedServices": {
-    "linter": {
+    "linter.provider": {
       "versions": {
         "^1.0.0": "consumeLinter"
       }
     },
-    "linter-ui": {
+    "linter.ui": {
       "versions": {
         "^1.0.0": "consumeLinterUI"
       }
@@ -42,16 +42,16 @@
         "^1.0.0": "consumeStatusBar"
       }
     },
-    "linter-adapter": {
+    "linter.adapter": {
       "versions": {
-        "^1.0.0": "consumeItemLinterAdapter"
+        "^1.0.0": "consumeLinterAdapter"
       }
     }
   },
   "providedServices": {
-    "linter-indie": {
+    "linter.registry": {
       "versions": {
-        "1.0.0": "provideIndie"
+        "1.0.0": "provideLinterRegistry"
       }
     },
     "intentions.list": {

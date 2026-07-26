@@ -64,14 +64,12 @@ describe("linter package assets", () => {
 
   it("keeps the shared linter service contract intact", () => {
     const pkg = JSON.parse(read("package.json"));
-    expect(pkg.providedServices["linter-indie"].versions["1.0.0"]).toBe("provideIndie");
+    expect(pkg.providedServices["linter.registry"].versions["1.0.0"]).toBe("provideLinterRegistry");
     expect(pkg.providedServices["intentions.list"].versions["1.0.0"]).toBe("provideIntentionsList");
     expect(pkg.providedServices["mcp-tools"].versions["1.0.0"]).toBe("provideMcpTools");
-    expect(pkg.consumedServices["linter"].versions["^1.0.0"]).toBe("consumeLinter");
-    expect(pkg.consumedServices["linter-ui"].versions["^1.0.0"]).toBe("consumeLinterUI");
-    expect(pkg.consumedServices["linter-adapter"].versions["^1.0.0"]).toBe(
-      "consumeItemLinterAdapter",
-    );
+    expect(pkg.consumedServices["linter.provider"].versions["^1.0.0"]).toBe("consumeLinter");
+    expect(pkg.consumedServices["linter.ui"].versions["^1.0.0"]).toBe("consumeLinterUI");
+    expect(pkg.consumedServices["linter.adapter"].versions["^1.0.0"]).toBe("consumeLinterAdapter");
   });
 
   it("has no leftover linter-bundle / lodash / unscoped-fork references in lib", () => {
