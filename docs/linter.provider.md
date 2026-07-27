@@ -118,7 +118,7 @@ Unusually for this ecosystem, this service fails loudly once your object reaches
 | `[Linter] Invalid Linter Result received` | A malformed message. Only the first instance of each distinct problem is reported per batch. |
 | `[Linter] Error running <name>`           | `lint` threw or rejected.                                                                    |
 
-Everything _before_ that point is still silent: a misspelled `linter.provider`, or a `provideLinter` that is not exported from your main module, produces nothing at all. `npm run check:services` catches the second.
+Everything _before_ that point is still silent: a misspelled `linter.provider`, or a `provideLinter` that is not exported from your main module, produces nothing at all — your linter simply never arrives.
 
 ## Teardown
 

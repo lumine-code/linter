@@ -62,12 +62,12 @@ Override the package custom properties in your `styles.css`, or restyle the deco
 ## Services
 
 - **[linter.registry](docs/linter.registry.md)** (`1.0.0`): provided to let packages push messages directly without implementing a full linter provider.
-- **[intentions.list](https://lumine-code.github.io/docs.html#services/intentions.list)** (`1.0.0`): provided to expose message solutions as quick-fix code actions at the cursor.
-- **[mcp.tools](https://lumine-code.github.io/docs.html#services/mcp.tools)** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
+- **intentions.list** (`1.0.0`): provided to expose message solutions as quick-fix code actions at the cursor.
+- **mcp.tools** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
 - **[linter.provider](docs/linter.provider.md)** (`^1.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
 - **[linter.ui](docs/linter.ui.md)** (`^1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.
 - **[linter.adapter](docs/linter.adapter.md)** (`^1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
-- **[status-bar](https://lumine-code.github.io/docs.html#services/status-bar)** (`^1.0.0`): consumed to display the error, warning, and info counts.
+- **status-bar** (`^1.0.0`): consumed to display the error, warning, and info counts.
 
 ## Usage
 
