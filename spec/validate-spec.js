@@ -79,6 +79,43 @@ describe("lib/validate", () => {
       expect(Validate.messages("my-linter", [{ ...good, severity: "boom" }])).toBe(false);
     });
 
+    it("accepts every severity of the model", () => {
+      for (const severity of ["error", "warning", "info", "hint"]) {
+        expect(Validate.messages("my-linter", [{ ...good, severity }])).toBe(true);
+      }
+    });
+
+    it("names every severity when rejecting one", () => {
+      Validate.messages("my-linter", [{ ...good, severity: "boom" }]);
+      const [, options] = atom.notifications.addWarning.calls.mostRecent().args;
+      expect(options.detail).toContain("'error', 'warning', 'info' or 'hint'");
+    });
+
+    // Tags are optional, and no provider outside the LSP bridge sets them, so
+    // the absent case is the one that must never regress.
+    it("accepts a message with no tags", () => {
+      expect(Validate.messages("my-linter", [good])).toBe(true);
+      expect("tags" in good).toBe(false);
+    });
+
+    it("accepts an empty tag array", () => {
+      expect(Validate.messages("my-linter", [{ ...good, tags: [] }])).toBe(true);
+    });
+
+    it("accepts known tags in any order", () => {
+      expect(
+        Validate.messages("my-linter", [{ ...good, tags: ["deprecated", "unnecessary"] }]),
+      ).toBe(true);
+    });
+
+    it("rejects tags that are not an array", () => {
+      expect(Validate.messages("my-linter", [{ ...good, tags: "deprecated" }])).toBe(false);
+    });
+
+    it("rejects an unknown tag", () => {
+      expect(Validate.messages("my-linter", [{ ...good, tags: ["bogus"] }])).toBe(false);
+    });
+
     it("rejects a message with no excerpt", () => {
       const { excerpt: _excerpt, ...withoutExcerpt } = good;
       expect(Validate.messages("my-linter", [withoutExcerpt])).toBe(false);

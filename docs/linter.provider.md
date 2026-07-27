@@ -41,17 +41,18 @@ All five fields are required. A linter missing any of them is rejected with a di
 
 A message. These four are required:
 
-| Field               | Type                                 | Description                                                            |
-| ------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
-| `severity`          | `"error"` \| `"warning"` \| `"info"` | Anything else is rejected.                                             |
-| `excerpt`           | string                               | The one-line message text.                                             |
-| `location.file`     | string                               | Absolute path.                                                         |
-| `location.position` | Range-compatible                     | `[[row, column], [row, column]]` or a `Range`. Must not contain `NaN`. |
+| Field               | Type                                                  | Description                                                            |
+| ------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| `severity`          | `"error"` \| `"warning"` \| `"info"` \| `"hint"`      | Anything else is rejected. `"hint"` is the quiet tier.                 |
+| `excerpt`           | string                                                | The one-line message text.                                             |
+| `location.file`     | string                                                | Absolute path.                                                         |
+| `location.position` | Range-compatible                                      | `[[row, column], [row, column]]` or a `Range`. Must not contain `NaN`. |
 
 And these are optional:
 
 | Field         | Type                                        | Description                                                           |
 | ------------- | ------------------------------------------- | --------------------------------------------------------------------- |
+| `tags`        | `("unnecessary" \| "deprecated")[]`         | Dims or strikes the marked range. Orthogonal to `severity`.           |
 | `description` | string \| `() => string \| Promise<string>` | Long form, resolved lazily when the message is expanded.              |
 | `solutions`   | array \| `Promise<array>`                   | Quick fixes. Also surfaced as code actions through `intentions.list`. |
 | `reference`   | `{ file: string, position: Point }`         | A second location, such as a prior declaration. Also `NaN`-checked.   |
@@ -104,7 +105,9 @@ Files are skipped before `lint` is called when they match the `linter.ignoreGlob
 
 Message shape is validated on every run in dev mode, and always when the return value is not an array; in a release build a plausible array is trusted. Develop with `--dev` if you want the diagnostics.
 
-The panel normalizes what you return **in place**: positions become `Range` and `Point` instances, `linterName` is filled in from `name`, and a stable key is attached. Do not assume the objects you returned stay untouched, and do not hand out shared or frozen objects.
+The panel normalizes what you return **in place**: positions become `Range` and `Point` instances, `linterName` is filled in from `name`, `tags` is reduced to the known values in a fixed order (and dropped when none survive), and a stable key is attached. Do not assume the objects you returned stay untouched, and do not hand out shared or frozen objects.
+
+The severity and tag vocabularies follow the LSP diagnostic model — `severity` mirrors `DiagnosticSeverity` (`error` 1, `warning` 2, `info` 3, `hint` 4) and `tags` mirrors `DiagnosticTag` — and both sets are open-ended. A consumer must supply its own default for a value it does not recognize rather than assume a fixed set of keys, and should treat an unknown severity as the lowest precedence.
 
 If `lint` throws or rejects, the error is logged and raised as a notification, deduplicated per linter so one broken provider cannot flood the user.
 

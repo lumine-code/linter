@@ -8,6 +8,7 @@
 
 :root {
   --linter-dot-size: 4px;
+  --linter-unnecessary-opacity: 0.55;
 }
 
 .linter-text {
@@ -23,6 +24,30 @@
   &.info {
     text-decoration-color: var(--text-color-info);
   }
+  &.hint {
+    /* Longhand only: the shared shorthand above keeps the offset, and the
+     * dotted style drops hints to the quietest rank the editor draws. */
+    text-decoration-style: dotted;
+    text-decoration-color: var(--text-color-hint);
+  }
+}
+
+/* Tags are the second, orthogonal axis of a message: any severity may also be
+ * tagged, so both classes land on the *same* decoration span — the editor
+ * merges overlapping text decorations into one class list rather than nesting
+ * them. text-decoration is already spoken for by the severity underline above,
+ * and it carries a single colour and style for the whole element, so the strike
+ * is drawn as a background rule instead. Same reason .linter-line-number below
+ * uses a gradient rather than a pseudo-element. */
+.linter-tag-unnecessary {
+  opacity: var(--linter-unnecessary-opacity);
+}
+
+.linter-tag-deprecated {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+  background-position: 0 55%;
 }
 
 /* Gutter line-number styling for lines with linter messages.
@@ -86,6 +111,14 @@
     &.text-info {
       color: var(--text-color-info);
     }
+    &.text-hint {
+      color: var(--text-color-hint);
+    }
+  }
+  /* A quiet tile only appears once it has something to report. Safe against the
+   * a + a margin above because the quiet tiers rank last. */
+  a.linter-status-tile-hidden {
+    display: none;
   }
   .icon::before {
     margin-right: 0.25em;
@@ -156,6 +189,14 @@
       padding: 0.3em 0.5em;
       display: flex;
       align-items: center;
+      /* Yields to the toggle strip, which is a fixed set of small fixed-width
+       * squares: in a narrow dock the label ellipsizes rather than squashing
+       * the controls. */
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     .linter-header-sortable {
@@ -188,9 +229,17 @@
       width: 18%;
     }
 
+    /* Core defines .text-error, .text-warning and .text-info as utility
+     * classes, but has no .text-hint: hint is a linter concept, so the rule
+     * lives here rather than widening the editor's utility set. */
+    .linter-severity.text-hint {
+      color: var(--text-color-hint);
+    }
+
     .linter-toggles {
       display: flex;
       align-items: stretch;
+      flex: 0 0 auto;
 
       .linter-view-tab {
         display: flex;
@@ -216,11 +265,15 @@
       }
 
       .input-label {
+        /* One tint rule set, keyed off the severity's own colour, so a new
+         * severity is a single line rather than another twelve-line block. */
+        --linter-severity-color: var(--text-color-subtle);
         display: flex;
         align-items: center;
         justify-content: center;
         margin: 0;
         width: 15px;
+        flex: 0 0 auto;
         cursor: pointer;
         border-left: 1px solid var(--base-border-color);
         font-size: 0.9em;
@@ -231,42 +284,27 @@
         }
 
         &.error {
-          &:hover {
-            background-color: rgb(from var(--text-color-error) r g b / 0.1);
-          }
-          &:has(input:checked) {
-            background-color: rgb(from var(--text-color-error) r g b / 0.2);
-            font-weight: bold;
-          }
-          &:has(input:checked):hover {
-            background-color: rgb(from var(--text-color-error) r g b / 0.3);
-          }
+          --linter-severity-color: var(--text-color-error);
         }
-
         &.warning {
-          &:hover {
-            background-color: rgb(from var(--text-color-warning) r g b / 0.1);
-          }
-          &:has(input:checked) {
-            background-color: rgb(from var(--text-color-warning) r g b / 0.2);
-            font-weight: bold;
-          }
-          &:has(input:checked):hover {
-            background-color: rgb(from var(--text-color-warning) r g b / 0.3);
-          }
+          --linter-severity-color: var(--text-color-warning);
+        }
+        &.info {
+          --linter-severity-color: var(--text-color-info);
+        }
+        &.hint {
+          --linter-severity-color: var(--text-color-hint);
         }
 
-        &.info {
-          &:hover {
-            background-color: rgb(from var(--text-color-info) r g b / 0.1);
-          }
-          &:has(input:checked) {
-            background-color: rgb(from var(--text-color-info) r g b / 0.2);
-            font-weight: bold;
-          }
-          &:has(input:checked):hover {
-            background-color: rgb(from var(--text-color-info) r g b / 0.3);
-          }
+        &:hover {
+          background-color: rgb(from var(--linter-severity-color) r g b / 0.1);
+        }
+        &:has(input:checked) {
+          background-color: rgb(from var(--linter-severity-color) r g b / 0.2);
+          font-weight: bold;
+        }
+        &:has(input:checked):hover {
+          background-color: rgb(from var(--linter-severity-color) r g b / 0.3);
         }
       }
     }
@@ -313,42 +351,36 @@
     }
 
     .linter-row {
+      /* Transparent by default so a row of unknown severity still gets neutral
+       * hover feedback: rgb(from transparent r g b / 0.08) is a faint black. */
+      --linter-severity-background: transparent;
       transition: background-color 0.15s ease-out;
       cursor: pointer;
 
+      &.error {
+        --linter-severity-background: var(--background-color-error);
+      }
+      &.warning {
+        --linter-severity-background: var(--background-color-warning);
+      }
+      &.info {
+        --linter-severity-background: var(--background-color-info);
+      }
+      /* Hints tint from the text colour, not a background colour: they have no
+       * saturated background token, by design. */
+      &.hint {
+        --linter-severity-background: var(--text-color-hint);
+      }
+
       &:hover {
-        &.error {
-          background-color: rgb(from var(--background-color-error) r g b / 0.08);
-        }
-        &.warning {
-          background-color: rgb(from var(--background-color-warning) r g b / 0.08);
-        }
-        &.info {
-          background-color: rgb(from var(--background-color-info) r g b / 0.08);
-        }
+        background-color: rgb(from var(--linter-severity-background) r g b / 0.08);
       }
 
       &.current {
-        &.error {
-          background-color: rgb(from var(--background-color-error) r g b / 0.25);
-        }
-        &.warning {
-          background-color: rgb(from var(--background-color-warning) r g b / 0.25);
-        }
-        &.info {
-          background-color: rgb(from var(--background-color-info) r g b / 0.25);
-        }
+        background-color: rgb(from var(--linter-severity-background) r g b / 0.25);
 
         &:hover {
-          &.error {
-            background-color: rgb(from var(--background-color-error) r g b / 0.3);
-          }
-          &.warning {
-            background-color: rgb(from var(--background-color-warning) r g b / 0.3);
-          }
-          &.info {
-            background-color: rgb(from var(--background-color-info) r g b / 0.3);
-          }
+          background-color: rgb(from var(--linter-severity-background) r g b / 0.3);
         }
       }
     }
@@ -403,6 +435,9 @@
   &.info {
     border-color: var(--background-color-info);
   }
+  &.hint {
+    border-color: var(--text-color-hint);
+  }
 
   .linter-bubble-item {
     display: flex;
@@ -427,6 +462,14 @@
     &.info .linter-bubble-sidebar {
       background-color: var(--background-color-info);
       color: var(--text-color-on-info);
+    }
+    /* Deliberately not a filled chip. --text-color-hint is a neutral grey, and
+     * grey is exactly where the lightness flip that derives --text-color-on-*
+     * is least stable, so there is no readable foreground to pair with it. An
+     * unfilled chip also reads quieter than the three coloured ones. */
+    &.hint .linter-bubble-sidebar {
+      background-color: var(--background-color-highlight);
+      color: var(--text-color);
     }
   }
 

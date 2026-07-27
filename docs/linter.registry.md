@@ -54,7 +54,7 @@ The delegate:
 | `onDidDestroy(callback)`          | Fires when the delegate is disposed.                                                       |
 | `dispose()`                       | Unregisters the delegate and clears its messages.                                          |
 
-Messages take the same shape as for [`linter.provider`](linter.provider.md): `severity`, `excerpt`, and `location` with `file` and `position` are required; `description`, `solutions`, `reference`, `url`, `icon`, and `linterName` are optional.
+Messages take the same shape as for [`linter.provider`](linter.provider.md): `severity`, `excerpt`, and `location` with `file` and `position` are required; `tags`, `description`, `solutions`, `reference`, `url`, `icon`, and `linterName` are optional.
 
 ## Minimal example
 
