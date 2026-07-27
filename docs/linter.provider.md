@@ -41,12 +41,12 @@ All five fields are required. A linter missing any of them is rejected with a di
 
 A message. These four are required:
 
-| Field               | Type                                                  | Description                                                            |
-| ------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------- |
-| `severity`          | `"error"` \| `"warning"` \| `"info"` \| `"hint"`      | Anything else is rejected. `"hint"` is the quiet tier.                 |
-| `excerpt`           | string                                                | The one-line message text.                                             |
-| `location.file`     | string                                                | Absolute path.                                                         |
-| `location.position` | Range-compatible                                      | `[[row, column], [row, column]]` or a `Range`. Must not contain `NaN`. |
+| Field               | Type                                             | Description                                                            |
+| ------------------- | ------------------------------------------------ | ---------------------------------------------------------------------- |
+| `severity`          | `"error"` \| `"warning"` \| `"info"` \| `"hint"` | Anything else is rejected. `"hint"` is the quiet tier.                 |
+| `excerpt`           | string                                           | The one-line message text.                                             |
+| `location.file`     | string                                           | Absolute path.                                                         |
+| `location.position` | Range-compatible                                 | `[[row, column], [row, column]]` or a `Range`. Must not contain `NaN`. |
 
 And these are optional:
 
