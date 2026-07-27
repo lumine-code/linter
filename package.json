@@ -2,7 +2,7 @@
   "name": "linter",
   "author": "lumine-code",
   "main": "./lib/main.js",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Linting infrastructure with an integrated UI.",
   "repository": "https://github.com/lumine-code/linter",
   "bugs": {
@@ -136,7 +136,7 @@
         },
         {
           "value": "severity",
-          "description": "Sort by severity (error, warning, info) then line number"
+          "description": "Sort by severity (error, warning, info, hint) then line number"
         },
         {
           "value": "provider",

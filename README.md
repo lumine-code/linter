@@ -7,7 +7,7 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 ## Features
 
 - **Unified package**: combines linter core functionality with UI in a single package.
-- **Status bar integration**: shows error, warning, and info counts in the status bar, with mouse shortcuts for toggling the panel and stepping through messages.
+- **Status bar integration**: shows a count per severity in the status bar, with mouse shortcuts for toggling the panel and stepping through messages.
 - **Linter panel**: sortable table view of all linter messages with filtering, and keyboard navigation when focused.
 - **Inline bubbles**: hover-style message display at the cursor position.
 - **Editor highlighting**: underline and gutter decorations for linted ranges.
@@ -48,14 +48,28 @@ Override the package custom properties in your `styles.css`, or restyle the deco
 ```css
 :root {
   --linter-dot-size: 6px;
+  --linter-unnecessary-opacity: 0.4;
 }
 
 .linter-text {
   &.error,
   &.warning,
-  &.info {
+  &.info,
+  &.hint {
     text-decoration-style: solid;
   }
+}
+```
+
+Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
+
+```css
+.linter-line-number.hint:not(.info):not(.warning):not(.error) {
+  background-image: radial-gradient(
+    circle,
+    var(--text-color-hint) calc(var(--linter-dot-size) / 2),
+    transparent calc(var(--linter-dot-size) / 2)
+  );
 }
 ```
 
@@ -67,7 +81,7 @@ Override the package custom properties in your `styles.css`, or restyle the deco
 - **[linter.provider](docs/linter.provider.md)** (`^1.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
 - **[linter.ui](docs/linter.ui.md)** (`^1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.
 - **[linter.adapter](docs/linter.adapter.md)** (`^1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
-- **status-bar** (`^1.0.0`): consumed to display the error, warning, and info counts.
+- **status-bar** (`^1.0.0`): consumed to display the message count per severity.
 
 ## Usage
 
@@ -83,7 +97,7 @@ With no arguments the tool follows the current linter panel view mode:
 The tool also accepts optional filters. When any of them is provided, the result is scoped from all known messages across the project, independent of UI focus or panel view mode (`mode` is `filter`). This lets callers target a file that is not the focused tab, or even a file that was never opened:
 
 - `filePath`: only messages for this file. Matching mirrors the filesystem: on Windows it is case-insensitive and treats `/` and `\` as equal, on POSIX it is exact.
-- `severity`: only messages with this severity (`error`, `warning` or `info`).
+- `severity`: only messages with this severity (`error`, `warning`, `info` or `hint`).
 - `linterName`: only messages produced by this linter provider.
 
 Filters combine with AND, e.g. `{ filePath, severity: "error" }` returns only the errors for that file.
@@ -97,6 +111,7 @@ Returned data has the shape:
   "messages": [
     {
       "severity": "warning",
+      "tags": null,
       "excerpt": "Warning message",
       "linterName": "my-linter",
       "file": "/path/to/current/file.js",

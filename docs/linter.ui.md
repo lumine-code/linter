@@ -65,7 +65,9 @@ module.exports = {
 
 `render` receives the whole current message set on every change, not just the delta, so a UI that rebuilds from scratch can ignore `added` and `removed` entirely. Use them only if rebuilding is expensive.
 
-Messages reaching a UI have already been normalized: `location.position` is a `Range`, `reference.position` is a `Point`, and `linterName` is filled in. They are the same objects the panel holds, so treat them as read-only.
+Messages reaching a UI have already been normalized: `location.position` is a `Range`, `reference.position` is a `Point`, `linterName` is filled in, and `tags`, when present, holds only known values in a fixed order. They are the same objects the panel holds, so treat them as read-only.
+
+The severity and tag vocabularies follow the LSP diagnostic model and are open-ended, so a UI must supply its own default for a value it does not recognize rather than key off a fixed set of severities. Treat an unknown severity as the lowest precedence.
 
 `didBeginLinting` and `didFinishLinting` are paired per run and carry a `number` that increments per provider, so a UI showing progress can ignore a `didFinishLinting` whose `number` is stale. `didFinishLinting` always fires, including when the provider threw or timed out.
 
