@@ -8,14 +8,14 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 
 - **Unified package**: combines linter core functionality with UI in a single package.
 - **Status bar integration**: shows a count per severity in the status bar, with mouse shortcuts for toggling the panel and stepping through messages.
-- **Linter panel**: sortable table view of all linter messages with filtering, and keyboard navigation when focused.
-- **Inline bubbles**: hover-style message display at the cursor position.
+- **Linter panel**: sortable table view of all linter messages with filtering, and keyboard navigation when focused. Each row carries the provider's long form beside the excerpt, such as a rule code.
+- **Inline bubbles**: hover-style message display at the cursor position, excerpt and long form together.
 - **Editor highlighting**: underline and gutter decorations for linted ranges.
 - **Multiple sort methods**: sort by severity, position, or provider. Cell index is used as a primary sort key for notebook messages.
 - **Linter management**: enable or disable individual linter providers.
 - **Jupyter notebook support**: works with `.ipynb` files through the `linter.adapter` service. Messages are mapped to individual cells and the panel shows `[cell]:line:col` position.
 - **Scrollmap markers**: exposes linter markers to scrollbar-overview packages through the `linter.ui` service.
-- **Reference links**: clickable references in messages open related files.
+- **Reference links**: clickable references in messages open related files, and a "more info" link opens the provider's documentation in the browser.
 - **Markdown rendering**: message excerpts support markdown formatting in tooltips and the panel.
 - **MCP tool**: provides a read-only `GetLinterMessages` tool through the `mcp.tools` service.
 

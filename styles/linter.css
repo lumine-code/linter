@@ -350,6 +350,52 @@
       }
     }
 
+    /* Excerpt, then the long form and the links, laid out inline. Wrapping is
+     * allowed so a long excerpt keeps growing the row rather than truncating,
+     * which is what the cell did before it had anything beside the excerpt. */
+    .linter-description {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      column-gap: 0.5em;
+
+      .linter-excerpt {
+        flex: 0 1 auto;
+        min-width: 0;
+      }
+
+      .linter-detail {
+        flex: 0 1 auto;
+        min-width: 0;
+        color: var(--text-color-subtle);
+        font-size: 0.9em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .linter-detail-toggle,
+      .linter-more-info {
+        flex: 0 0 auto;
+        padding: 0 0.3em;
+        font-size: 0.85em;
+        color: var(--text-color-subtle);
+        background-color: rgb(from var(--background-color-highlight) r g b / 0.5);
+        border-radius: 3px;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+        transition:
+          background-color 0.15s ease,
+          color 0.15s ease;
+
+        &:hover {
+          color: var(--text-color-highlight);
+          background-color: var(--background-color-highlight);
+        }
+      }
+    }
+
     .linter-row {
       /* Transparent by default so a row of unknown severity still gets neutral
        * hover feedback: rgb(from transparent r g b / 0.08) is a faint black. */
@@ -494,6 +540,15 @@
       background-color: var(--background-color-highlight);
       padding: 1px 4px;
       border-radius: 2px;
+    }
+
+    /* The long form is plain text and may hold several lines — related
+     * locations arrive newline-separated — so its breaks are honoured. */
+    .linter-bubble-detail {
+      margin-top: 6px;
+      font-size: 0.9em;
+      color: var(--text-color-subtle);
+      white-space: pre-line;
     }
 
     .linter-log-ref {

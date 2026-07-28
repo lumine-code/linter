@@ -33,6 +33,7 @@ describe("lib/linter-panel", () => {
       getCurrentMessages: () => messages,
       allMessages: [],
       isLintingDisabledForEditor: () => false,
+      revealMessage: () => {},
     });
     jasmine.attachToDOM(panel.element);
     await panel.update();
@@ -92,6 +93,75 @@ describe("lib/linter-panel", () => {
     it("puts an unknown severity last instead of scrambling the order", async () => {
       await publish(["boom", "hint", "error"]);
       expect(rowsInOrder()).toEqual(["Error", "Hint", "boom"]);
+    });
+  });
+
+  // The description cell used to render the excerpt and nothing else, so
+  // `Message.description` and `Message.url` — where a language server puts its
+  // rule code and its documentation link — never reached the panel at all.
+  describe("the description cell", () => {
+    const publishOne = async (overrides) => {
+      messages = [Object.assign(message("error"), overrides)];
+      normalizeMessages("spec", messages);
+      await panel.update();
+    };
+
+    // Only microtasks separate the click from the re-render, so flushing them
+    // and re-rendering is deterministic — no timer, no polling.
+    const settle = async () => {
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+      await panel.update();
+    };
+
+    const cell = () => panel.element.querySelector(".linter-description");
+
+    it("renders the excerpt beside a string description", async () => {
+      await publishOne({ description: "Ruff: F401" });
+      expect(cell().querySelector(".linter-excerpt").textContent.trim()).toBe("error at 0");
+      const detail = cell().querySelector(".linter-detail");
+      expect(detail.textContent).toBe("Ruff: F401");
+      expect(detail.title).toBe("Ruff: F401");
+      expect(cell().querySelector(".linter-detail-toggle")).toBeNull();
+    });
+
+    it("renders only the excerpt when the message has no long form", async () => {
+      await publishOne({});
+      expect(cell().querySelector(".linter-excerpt").textContent.trim()).toBe("error at 0");
+      expect(cell().querySelector(".linter-detail")).toBeNull();
+      expect(cell().querySelector(".linter-detail-toggle")).toBeNull();
+      expect(cell().querySelector(".linter-more-info")).toBeNull();
+    });
+
+    it("resolves a lazy description when its affordance is clicked", async () => {
+      let calls = 0;
+      await publishOne({
+        description: () => {
+          calls++;
+          return Promise.resolve("the long form");
+        },
+      });
+      expect(calls).toBe(0);
+      expect(cell().querySelector(".linter-detail")).toBeNull();
+
+      cell().querySelector(".linter-detail-toggle").click();
+      await settle();
+
+      expect(calls).toBe(1);
+      expect(cell().querySelector(".linter-detail").textContent).toBe("the long form");
+      expect(cell().querySelector(".linter-detail-toggle")).toBeNull();
+    });
+
+    it("opens the message url externally instead of revealing the message", async () => {
+      spyOn(atom, "openExternal");
+      const reveal = spyOn(panel.pkg, "revealMessage");
+      await publishOne({ url: "https://docs.astral.sh/ruff/rules/unused-import" });
+
+      cell().querySelector(".linter-more-info").click();
+
+      expect(atom.openExternal).toHaveBeenCalledWith(
+        "https://docs.astral.sh/ruff/rules/unused-import",
+      );
+      expect(reveal).not.toHaveBeenCalled();
     });
   });
 
