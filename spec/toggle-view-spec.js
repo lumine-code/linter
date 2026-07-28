@@ -6,6 +6,7 @@ const { showToggleView } = require("../lib/toggle-view");
 describe("lib/toggle-view", () => {
   let disabled;
   let finishes;
+  let closes;
 
   const session = () => atom.modals.getActiveSession();
 
@@ -23,12 +24,14 @@ describe("lib/toggle-view", () => {
     }
   };
 
+  const viewProps = () => ({
+    onDisable: (name) => disabled.push(name),
+    onFinish: () => finishes++,
+    onClose: (result) => closes.push(result.reason ?? result.status),
+  });
+
   const open = async (providers = ["eslint", "flake8"]) => {
-    const opened = showToggleView({
-      providers,
-      onDisable: (name) => disabled.push(name),
-      onFinish: () => finishes++,
-    });
+    const opened = showToggleView({ providers, ...viewProps() });
     await settle();
     return opened;
   };
@@ -44,6 +47,7 @@ describe("lib/toggle-view", () => {
   beforeEach(() => {
     disabled = [];
     finishes = 0;
+    closes = [];
     atom.config.set("linter.disabledProviders", []);
   });
 
@@ -131,5 +135,52 @@ describe("lib/toggle-view", () => {
     await open();
     expect(await open()).toBeNull();
     expect(session()).toBeNull();
+    expect(closes).toEqual(["toggled"]);
+  });
+
+  // The command palette confirms by dispatching into the editor it came from,
+  // so `linter:toggle-linter` reaches `atom.modals` from inside another view's
+  // action. The kernel makes that a sublist: `toggle()` hands back the HOST
+  // session, and escaping the list only pops a frame off it. Anything the
+  // caller hangs on the returned session would therefore outlive the list, so
+  // the close has to be reported by the view itself.
+  describe("opened from inside another modal's action", () => {
+    const openPushed = async () => {
+      const host = atom.modals.open({
+        id: "toggle-view-spec.host",
+        source: ["open the provider list"],
+        confirm: () => {
+          // Returning nothing: the kernel reads a returned value as an
+          // ActionResult, and the session object is not one.
+          showToggleView({ providers: ["eslint", "flake8"], ...viewProps() });
+        },
+      });
+      await settle();
+      dispatch("core:confirm");
+      await settle();
+      return host;
+    };
+
+    it("is pushed onto the host session rather than replacing it", async () => {
+      const host = await openPushed();
+      expect(session()).toBe(host);
+      expect(session().depth).toBe(2);
+      expect(session().view.id).toBe("linter.providers");
+    });
+
+    it("reports its close when it is popped, while the host session lives on", async () => {
+      await openPushed();
+      dispatch("core:confirm");
+      await settle();
+      expect(atom.config.get("linter.disabledProviders")).toEqual(["eslint"]);
+
+      dispatch("core:cancel");
+      await settle();
+
+      expect(closes).toEqual(["popped"]);
+      expect(finishes).toBe(1);
+      expect(session()).not.toBeNull();
+      expect(session().view.id).toBe("toggle-view-spec.host");
+    });
   });
 });
