@@ -26,6 +26,9 @@
   "engines": {
     "atom": ">=1.100.0 <2.0.0"
   },
+  "backgroundTips": [
+    "{% if keys['linter:toggle-panel'] %}You can read every lint message in the project in one sortable panel with {{ 'linter:toggle-panel' | keystroke }}{% else %}You can read every lint message in the project in one sortable panel.{% endif %}"
+  ],
   "consumedServices": {
     "linter.provider": {
       "versions": {
