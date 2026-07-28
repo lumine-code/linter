@@ -88,4 +88,53 @@ describe("lib/helpers", () => {
       expect(a.key).toBe(b.key);
     });
   });
+
+  describe("description resolution", () => {
+    it("reads the string form without resolving anything", async () => {
+      const msg = { description: "Ruff: F401" };
+      expect(Helpers.getDescription(msg)).toBe("Ruff: F401");
+      expect(Helpers.hasLazyDescription(msg)).toBe(false);
+      expect(await Helpers.resolveDescription(msg)).toBe("Ruff: F401");
+    });
+
+    it("reports nothing for a message with no description", async () => {
+      const msg = { excerpt: "boom" };
+      expect(Helpers.getDescription(msg)).toBeNull();
+      expect(Helpers.hasLazyDescription(msg)).toBe(false);
+      expect(await Helpers.resolveDescription(msg)).toBeNull();
+    });
+
+    it("calls the function form once and serves the result from cache after", async () => {
+      let calls = 0;
+      const msg = {
+        description: () => {
+          calls++;
+          return Promise.resolve("the long form");
+        },
+      };
+      expect(Helpers.hasLazyDescription(msg)).toBe(true);
+      expect(Helpers.getDescription(msg)).toBeNull();
+
+      expect(await Helpers.resolveDescription(msg)).toBe("the long form");
+      expect(await Helpers.resolveDescription(msg)).toBe("the long form");
+      expect(calls).toBe(1);
+      expect(Helpers.getDescription(msg)).toBe("the long form");
+      expect(Helpers.hasLazyDescription(msg)).toBe(false);
+    });
+
+    it("swallows a throwing description and does not retry it", async () => {
+      let calls = 0;
+      const msg = {
+        description: () => {
+          calls++;
+          throw new Error("nope");
+        },
+      };
+      spyOn(console, "error");
+      expect(await Helpers.resolveDescription(msg)).toBeNull();
+      expect(await Helpers.resolveDescription(msg)).toBeNull();
+      expect(calls).toBe(1);
+      expect(console.error).toHaveBeenCalled();
+    });
+  });
 });
