@@ -57,9 +57,11 @@ describe("linter package assets", () => {
     expect(pkg.repository).toBe("https://github.com/lumine-code/linter");
     expect(pkg.dependencies.lodash).toBeUndefined();
     expect(pkg.dependencies["@lumine-code/etch"]).toBeDefined();
-    expect(pkg.dependencies["@lumine-code/select-list"]).toBeDefined();
-    expect(pkg.dependencies["@asiloisad/select-list"]).toBeUndefined();
     expect(pkg.dependencies.etch).toBeUndefined();
+    // The provider list is `atom.modals` now, so no select-list fork of any
+    // scope is a dependency any more.
+    expect(pkg.dependencies["@lumine-code/select-list"]).toBeUndefined();
+    expect(pkg.dependencies["@asiloisad/select-list"]).toBeUndefined();
   });
 
   it("keeps the shared linter service contract intact", () => {
@@ -81,7 +83,7 @@ describe("linter package assets", () => {
       const scrubbed = file === "util.js" ? src.replace(/lodash/g, "") : src;
       expect(scrubbed).not.toContain("linter-bundle");
       expect(scrubbed).not.toContain("lodash");
-      expect(scrubbed).not.toContain("@asiloisad/select-list");
+      expect(scrubbed).not.toContain("select-list");
     }
   });
 });
