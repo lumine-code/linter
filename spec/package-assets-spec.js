@@ -57,7 +57,8 @@ describe("linter package assets", () => {
     expect(pkg.repository).toBe("https://github.com/lumine-code/linter");
     expect(pkg.dependencies.lodash).toBeUndefined();
     expect(pkg.dependencies["@lumine-code/etch"]).toBeDefined();
-    expect(pkg.dependencies["@lumine-code/select-list"]).toBeDefined();
+    // The editor provides the list through atom.workspace.buildSelectList.
+    expect(pkg.dependencies["@lumine-code/select-list"]).toBeUndefined();
     expect(pkg.dependencies["@asiloisad/select-list"]).toBeUndefined();
     expect(pkg.dependencies.etch).toBeUndefined();
   });
