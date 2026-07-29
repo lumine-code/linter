@@ -50,6 +50,11 @@ describe("linter package assets", () => {
     expect(cssWithoutComments).not.toMatch(/\bfade\(|\bcontrast\(|\blighten\(|\bdarken\(/);
   });
 
+  it("keeps every diagnostic underline one pixel thick", () => {
+    const css = read("styles/linter.css");
+    expect(css).toMatch(/\.linter-text\s*\{[^}]*text-decoration-thickness:\s*1px;/);
+  });
+
   it("is named `linter`, scopes its dependencies, and drops lodash", () => {
     const pkg = JSON.parse(read("package.json"));
     expect(pkg.name).toBe("linter");
