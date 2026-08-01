@@ -1,5 +1,7 @@
 const { StatusPanel } = require("../lib/status");
 
+const cmdOrCtrl = (button) => (process.platform === "darwin" ? `⌘${button}` : `Ctrl+${button}`);
+
 // The status band is built from severities.js, one tile per severity. These
 // specs pin the two ways the tiers are deliberately not uniform: the quiet tier
 // hides itself at zero, and it never keeps the band open on its own.
@@ -35,6 +37,22 @@ describe("lib/status", () => {
       "hint",
     ]);
     expect(tileFor("hint").anchor.querySelector(".icon").classList).toContain("icon-light-bulb");
+  });
+
+  it("describes each status interaction in a composite tooltip", () => {
+    const [tooltip] = atom.tooltips.findTooltips(status.element);
+    const content = document.createElement("div");
+    content.innerHTML = tooltip.getTitle();
+    const rows = content.querySelectorAll(".tooltip-composite-item");
+
+    expect(rows.length).toBe(6);
+    expect(rows[0].textContent).toContain("Toggle panel");
+    expect(rows[0].textContent).toContain("LMB");
+    expect(rows[1].textContent).toContain("MMB");
+    expect(rows[2].textContent).toContain(cmdOrCtrl("MMB"));
+    expect(rows[3].textContent).toContain("RMB");
+    expect(rows[4].textContent).toContain(cmdOrCtrl("RMB"));
+    expect(rows[5].textContent).toContain("Toggle linting for current file");
   });
 
   it("counts each severity into its own tile", () => {
