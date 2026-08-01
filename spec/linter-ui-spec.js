@@ -119,6 +119,35 @@ describe("lib/linter-ui", () => {
       expect(tagged.length).toBe(0);
     });
 
+    it("decorates a non-empty range that ends exactly at EOF", () => {
+      editor.setText("const unused");
+      publish([message()]);
+
+      const spans = rendered(".linter-text.hint");
+      expect(spans.length).toBe(1);
+      expect(spans[0].textContent).toBe("unused");
+    });
+
+    it("expands a zero-width diagnostic at EOF across its line", () => {
+      editor.setText("const unused");
+      publish([
+        message({
+          location: {
+            file: "/spec.js",
+            buffer,
+            position: [
+              [0, 12],
+              [0, 12],
+            ],
+          },
+        }),
+      ]);
+
+      const spans = rendered(".linter-text.hint");
+      expect(spans.length).toBe(1);
+      expect(spans[0].textContent).toBe("const unused");
+    });
+
     // Tags decorate text only; the gutter dot carries the severity alone.
     it("never puts a tag class in the gutter", () => {
       publish([message({ tags: ["deprecated"] })]);
@@ -171,6 +200,78 @@ describe("lib/linter-ui", () => {
       expect(buffer.linterUI.markerMap.size).toBe(0);
       expect(buffer.linterUI.tagLayers.unnecessary.getMarkerCount()).toBe(0);
       expect(buffer.linterUI.tagLayers.deprecated.getMarkerCount()).toBe(0);
+    });
+
+    it("keeps markers valid while their provider recomputes", () => {
+      const tracked = message({ tags: ["unnecessary"] });
+      normalizeMessages("spec", [tracked], { markerInvalidation: "never" });
+      ui.render({ added: [tracked], removed: [], messages: [tracked] });
+      const markers = markersFor(tracked);
+
+      editor.setTextInBufferRange(
+        [
+          [0, 7],
+          [0, 7],
+        ],
+        "x",
+      );
+
+      expect(markers.every((marker) => marker.isValid())).toBe(true);
+      expect(buffer.linterUI.markerMap.get(tracked.key)).toBe(markers);
+    });
+
+    it("does not extend an anchored zero-width diagnostic over inserted text", () => {
+      editor.setText("const unused");
+      const tracked = message({
+        tags: ["unnecessary"],
+        location: {
+          file: "/spec.js",
+          buffer,
+          position: [
+            [0, 12],
+            [0, 12],
+          ],
+        },
+      });
+      normalizeMessages("spec", [tracked], { markerInvalidation: "never" });
+      ui.render({ added: [tracked], removed: [], messages: [tracked] });
+      const markers = markersFor(tracked);
+
+      editor.setTextInBufferRange(
+        [
+          [0, 12],
+          [0, 12],
+        ],
+        ".",
+      );
+
+      expect(markers.every((marker) => marker.isValid())).toBe(true);
+      expect(markers.map((marker) => marker.getRange().serialize())).toEqual([
+        [
+          [0, 0],
+          [0, 12],
+        ],
+        [
+          [0, 0],
+          [0, 12],
+        ],
+      ]);
+    });
+
+    it("invalidates markers by touch by default", () => {
+      const classic = message({ tags: ["unnecessary"] });
+      publish([classic]);
+      const markers = markersFor(classic);
+
+      editor.setTextInBufferRange(
+        [
+          [0, 7],
+          [0, 7],
+        ],
+        "x",
+      );
+
+      expect(markers.every((marker) => !marker.isValid())).toBe(true);
     });
   });
 

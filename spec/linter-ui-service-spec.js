@@ -1,4 +1,5 @@
 const Linter = require("../lib/linter-main");
+const { getMarkerInvalidation } = require("../lib/helpers");
 
 // Validate.ui() requires didBeginLinting and didFinishLinting of every external
 // UI provider and docs/linter.ui.md documents both, so they have to actually be
@@ -121,5 +122,52 @@ describe("lib/linter-main linting progress", () => {
     await lintOnce();
 
     expect(events[0].filePath).toBe(null);
+  });
+
+  it("renders an indie snapshot synchronously", () => {
+    const renders = [];
+    instance.setUIRenderCallback((difference) => renders.push(difference));
+    const delegate = instance.addIndie({ name: "snapshot-spec" });
+    const diagnostic = {
+      severity: "hint",
+      excerpt: "unused",
+      location: {
+        file: editor.getPath(),
+        position: [
+          [0, 0],
+          [0, 1],
+        ],
+      },
+    };
+
+    delegate.setMessages(editor.getPath(), [diagnostic]);
+
+    expect(renders.length).toBe(1);
+    expect(renders[0].added).toEqual([diagnostic]);
+    expect(getMarkerInvalidation(diagnostic)).toBe("touch");
+  });
+
+  it("carries an indie's marker invalidation strategy into its messages", () => {
+    const renders = [];
+    instance.setUIRenderCallback((difference) => renders.push(difference));
+    const delegate = instance.addIndie({
+      name: "snapshot-spec",
+      markerInvalidation: "never",
+    });
+    const diagnostic = {
+      severity: "hint",
+      excerpt: "unused",
+      location: {
+        file: editor.getPath(),
+        position: [
+          [0, 0],
+          [0, 1],
+        ],
+      },
+    };
+
+    delegate.setMessages(editor.getPath(), [diagnostic]);
+
+    expect(getMarkerInvalidation(renders[0].added[0])).toBe("never");
   });
 });

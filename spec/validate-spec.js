@@ -52,6 +52,12 @@ describe("lib/validate", () => {
       expect(Validate.indie({ name: "my-indie" })).toBe(true);
       expect(Validate.indie({})).toBe(false);
     });
+
+    it("accepts only the documented marker invalidation strategies", () => {
+      expect(Validate.indie({ name: "my-indie", markerInvalidation: "touch" })).toBe(true);
+      expect(Validate.indie({ name: "my-indie", markerInvalidation: "never" })).toBe(true);
+      expect(Validate.indie({ name: "my-indie", markerInvalidation: "inside" })).toBe(false);
+    });
   });
 
   describe("messages", () => {

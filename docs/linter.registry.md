@@ -35,10 +35,11 @@ type RegisterIndie = (config: IndieConfig) => IndieDelegate;
 type IndieConfig = {
   name: string;
   deleteOnOpen?: boolean;
+  markerInvalidation?: "touch" | "never";
 };
 ```
 
-`name` is required and must be a string; anything else raises a notification and **throws**. `deleteOnOpen` defaults to `false`.
+`name` is required and must be a string; anything else raises a notification and **throws**. `deleteOnOpen` defaults to `false`. `markerInvalidation` defaults to `"touch"`.
 
 The delegate:
 
@@ -86,6 +87,12 @@ module.exports = {
 ## Behavior
 
 An indie delegate is always project-scoped: its messages persist until you replace or clear them, and nothing re-runs on save or on change. Keeping them in step with the buffer is your job.
+
+Every call is committed immediately; marker invalidation does not add an update delay.
+
+The default `"touch"` retires a message as soon as an edit touches its inline range. It suits classic linters that recompute after typing stops, preventing their previous result from remaining visible during that delay.
+
+`"never"` is for a source that owns complete snapshots, such as a language server. Its markers track buffer edits without absorbing text inserted at their boundaries, and remain visible until a later snapshot replaces or clears them. Such a producer must publish an empty array when a file has no diagnostics and clear its messages when the producer stops.
 
 `setMessages` throws if `filePath` is not a string or `messages` is not an array, and again if any message's `location.file` differs from `filePath` — the per-file bucket must be internally consistent. `setAllMessages` has no such constraint; it re-buckets by each message's own `location.file`.
 
