@@ -1,6 +1,3 @@
-/** @babel */
-/** @jsx etch.dom */
-
 const etch = require("@lumine-code/etch");
 const path = require("path");
 const Severities = require("./severities");

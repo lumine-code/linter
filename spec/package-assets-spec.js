@@ -81,7 +81,7 @@ describe("linter package assets", () => {
   it("has no leftover linter-bundle / lodash / unscoped-fork references in lib", () => {
     const libDir = path.join(root, "lib");
     for (const file of fs.readdirSync(libDir)) {
-      if (!file.endsWith(".js")) continue;
+      if (!/\.jsx?$/.test(file)) continue;
       const src = fs.readFileSync(path.join(libDir, file), "utf8");
       // util.js documents what it replaces, so allow the word "lodash" there.
       const scrubbed = file === "util.js" ? src.replace(/lodash/g, "") : src;
