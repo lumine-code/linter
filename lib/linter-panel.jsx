@@ -32,8 +32,11 @@ class LinterPanel {
     this._currentRowIndex = -1;
     // Track right-clicked row for context menu
     this._contextRow = null;
-    // Track keyboard-focused row index for panel navigation
-    this._focusedRowIndex = -1;
+    // The keyboard cursor, tracked as the message itself: identity survives
+    // re-sorts and refreshes, and a message that disappears takes the cursor
+    // with it. Rendered as a class from state — never patched into the DOM
+    // behind etch's back.
+    this._focusedMessage = null;
     // Bind row click handler once for event delegation
     this._onRowClick = this._onRowClick.bind(this);
     this._onRowMiddleClick = this._onRowMiddleClick.bind(this);
@@ -47,6 +50,15 @@ class LinterPanel {
     // Handle middle-click to delete individual messages
     this.element.addEventListener("mouseup", (e) => {
       if (e.button === 1) this._onRowMiddleClick(e);
+    });
+
+    // Leaving the panel ends the keyboard journey; no cursor lies in wait
+    // for the next visit.
+    this.element.addEventListener("focusout", (e) => {
+      if (!this.element.contains(e.relatedTarget) && this._focusedMessage) {
+        this._focusedMessage = null;
+        this.update();
+      }
     });
 
     // Context menu: track which row was right-clicked
@@ -389,25 +401,11 @@ class LinterPanel {
     const currentRow = this.element?.querySelector(".linter-row.current");
     if (currentRow) currentRow.classList.remove("current");
     this._currentRowIndex = -1;
-    const focusedRow = this.element?.querySelector(".linter-row.focused");
-    if (focusedRow) focusedRow.classList.remove("focused");
-    // _focusedRowIndex is preserved so readAfterUpdate can restore it
     return etch.update(this);
   }
 
   readAfterUpdate() {
     this._updateCurrentRowHighlight();
-    // Restore focused row highlight if panel still has focus
-    if (this._focusedRowIndex >= 0 && this.element.contains(document.activeElement)) {
-      const savedIndex = this._focusedRowIndex;
-      this._focusedRowIndex = -1;
-      const tbody = this.element.querySelector("tbody");
-      if (tbody && tbody.children.length > 0) {
-        this._setFocusedRow(Math.min(savedIndex, tbody.children.length - 1));
-      }
-    } else {
-      this._focusedRowIndex = -1;
-    }
   }
 
   setSortMethod(method) {
@@ -588,7 +586,11 @@ class LinterPanel {
 
       const item = (
         <tr
-          class={"linter-row " + (severity ? severity.name : "unknown")}
+          class={
+            "linter-row " +
+            (severity ? severity.name : "unknown") +
+            (message === this._focusedMessage ? " focused" : "")
+          }
           dataset={{ index: i, visibleIndex: visibleIndex }}
         >
           <td class={scls}>{stxt}</td>
@@ -677,52 +679,61 @@ class LinterPanel {
     }
   }
 
-  _setFocusedRow(index) {
-    const tbody = this.element.querySelector("tbody");
-    if (!tbody) return;
-    if (this._focusedRowIndex >= 0) {
-      const oldRow = tbody.children[this._focusedRowIndex];
-      if (oldRow) oldRow.classList.remove("focused");
-    }
-    this._focusedRowIndex = index;
-    if (index >= 0) {
-      const newRow = tbody.children[index];
-      if (newRow) {
-        newRow.classList.add("focused");
-        this.scrollToFocused();
+  // The visible rows, in render order: sorted, severity-filtered.
+  _visibleMessages() {
+    return this._getSortedMessages(this._getMessages()).filter((message) =>
+      this.isSeverityVisible(message.severity),
+    );
+  }
+
+  // The message of the `.current` row, resolved through the row's index —
+  // the highlight itself is maintained by _updateCurrentRowHighlight.
+  _currentMessage() {
+    const row = this.element.querySelector(".linter-row.current");
+    if (!row || row.dataset.index === undefined) return null;
+    return this._getSortedMessages(this._getMessages())[parseInt(row.dataset.index, 10)] || null;
+  }
+
+  _setFocusedMessage(message) {
+    this._focusedMessage = message;
+    this.update().then(() => this.scrollToFocused());
+  }
+
+  _moveFocus(delta) {
+    const visible = this._visibleMessages();
+    if (!visible.length) return;
+    const clamp = (index) => Math.min(visible.length - 1, Math.max(0, index));
+    const focusedIndex = this._focusedMessage ? visible.indexOf(this._focusedMessage) : -1;
+    let index;
+    if (focusedIndex >= 0) {
+      index = clamp(focusedIndex + delta);
+    } else {
+      // First press: step off the current row when there is one, enter the
+      // list from the end the key came from otherwise.
+      const current = this._currentMessage();
+      const currentIndex = current ? visible.indexOf(current) : -1;
+      if (currentIndex >= 0) {
+        index = clamp(currentIndex + delta);
+      } else {
+        index = delta > 0 ? 0 : visible.length - 1;
       }
     }
+    this._setFocusedMessage(visible[index]);
   }
 
   _moveFocusDown() {
-    const tbody = this.element.querySelector("tbody");
-    if (!tbody || !tbody.children.length) return;
-    const count = tbody.children.length;
-    this._setFocusedRow(
-      this._focusedRowIndex < 0 ? 0 : Math.min(this._focusedRowIndex + 1, count - 1),
-    );
+    this._moveFocus(1);
   }
 
   _moveFocusUp() {
-    const tbody = this.element.querySelector("tbody");
-    if (!tbody || !tbody.children.length) return;
-    const count = tbody.children.length;
-    this._setFocusedRow(
-      this._focusedRowIndex < 0 ? count - 1 : Math.max(this._focusedRowIndex - 1, 0),
-    );
+    this._moveFocus(-1);
   }
 
+  // Enter needs a cursor, jumps to its message, and takes the cursor with it.
   _confirmFocused() {
-    if (this._focusedRowIndex < 0) return;
-    const tbody = this.element.querySelector("tbody");
-    if (!tbody) return;
-    const row = tbody.children[this._focusedRowIndex];
-    if (!row) return;
-    const rowIndex = row.dataset.index;
-    if (rowIndex === undefined) return;
-    const message = this._getSortedMessages(this._getMessages())[parseInt(rowIndex, 10)];
+    const message = this._focusedMessage;
     if (!message) return;
-    this._setFocusedRow(-1);
+    this._setFocusedMessage(null);
     if (this.viewMode === "project") {
       atom.workspace.open(message.location.file, {
         initialLine: message.location.position.start.row,
@@ -735,16 +746,9 @@ class LinterPanel {
   }
 
   _cancelFocus() {
-    this._setFocusedRow(-1);
+    this._setFocusedMessage(null);
     const editor = atom.workspace.getActiveTextEditor();
     if (editor) editor.element.focus();
-  }
-
-  _initFocusedRow() {
-    const tbody = this.element.querySelector("tbody");
-    if (!tbody || !tbody.children.length) return;
-    const startIndex = this._currentRowIndex >= 0 ? this._currentRowIndex : 0;
-    this._setFocusedRow(Math.min(startIndex, tbody.children.length - 1));
   }
 
   toggleFocus() {
@@ -752,18 +756,17 @@ class LinterPanel {
       this._cancelFocus();
       return;
     }
+    // Focus only: the cursor does not exist until the first arrow press.
     atom.workspace.open(this, { searchAllPanes: true }).then(() => {
       this.element.focus();
-      this._initFocusedRow();
     });
   }
 
   scrollToFocused() {
-    if (this._focusedRowIndex < 0) return;
+    const focusedRow = this.element.querySelector(".linter-row.focused");
+    if (!focusedRow) return;
     const tbody = this.element.querySelector("tbody");
     if (!tbody) return;
-    const focusedRow = tbody.children[this._focusedRowIndex];
-    if (!focusedRow) return;
     const rowTop =
       focusedRow.getBoundingClientRect().top - tbody.getBoundingClientRect().top + tbody.scrollTop;
     const rowBottom = rowTop + focusedRow.offsetHeight;
