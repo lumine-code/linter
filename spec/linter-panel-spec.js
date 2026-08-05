@@ -49,6 +49,71 @@ describe("lib/linter-panel", () => {
     await panel.update();
   };
 
+  describe("the keyboard cursor", () => {
+    const focusedRows = () => panel.element.querySelectorAll(".linter-row.focused").length;
+    const focusedText = () =>
+      panel.element.querySelector(".linter-row.focused .linter-excerpt")?.textContent.trim();
+
+    it("does not exist until the first arrow press, entering from the ends", async () => {
+      await publish(["error", "warning", "info"]);
+      expect(focusedRows()).toBe(0);
+
+      panel._moveFocus(-1);
+      await panel.update();
+      expect(focusedText()).toBe("info at 2");
+
+      panel._setFocusedMessage(null);
+      panel._moveFocus(1);
+      await panel.update();
+      expect(focusedText()).toBe("error at 0");
+    });
+
+    it("tracks the message itself through a refresh, and dies with it", async () => {
+      await publish(["error", "warning", "info"]);
+      panel._moveFocus(1);
+      await panel.update();
+      const focused = panel._focusedMessage;
+      expect(focused.excerpt).toBe("error at 0");
+
+      // A refresh that keeps the message keeps the cursor on it.
+      messages = [messages[1], messages[0]];
+      await panel.update();
+      expect(panel._focusedMessage).toBe(focused);
+      expect(focusedText()).toBe("error at 0");
+
+      // One that drops the message drops the cursor's row with it.
+      messages = messages.filter((candidate) => candidate !== focused);
+      await panel.update();
+      expect(focusedRows()).toBe(0);
+    });
+
+    it("confirm needs a cursor, reveals the message, and drops the cursor", async () => {
+      const revealed = [];
+      panel.pkg.revealMessage = (message) => revealed.push(message.excerpt);
+      await publish(["error", "warning"]);
+
+      panel._confirmFocused();
+      expect(revealed).toEqual([]);
+
+      panel._moveFocus(1);
+      panel._confirmFocused();
+      await panel.update();
+      expect(revealed).toEqual(["error at 0"]);
+      expect(focusedRows()).toBe(0);
+    });
+
+    it("leaving the panel drops the cursor", async () => {
+      await publish(["error", "warning"]);
+      panel._moveFocus(1);
+      await panel.update();
+      expect(focusedRows()).toBe(1);
+
+      panel.element.dispatchEvent(new FocusEvent("focusout", { relatedTarget: null }));
+      await panel.update();
+      expect(focusedRows()).toBe(0);
+    });
+  });
+
   describe("the filter header", () => {
     it("renders one checkbox per severity, in precedence order, all checked", () => {
       const labels = Array.from(panel.element.querySelectorAll(".input-label"));
