@@ -529,9 +529,16 @@
     white-space: nowrap;
   }
 
+  /* One baseline-aligned row, as in the panel: the excerpt leads and the long
+   * form and log reference trail it, wrapping only when they do not fit. */
   .linter-bubble-content {
     padding: 8px;
     flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.5em;
+    row-gap: 4px;
 
     p {
       margin: 0;
@@ -543,18 +550,29 @@
       border-radius: 2px;
     }
 
+    .linter-bubble-excerpt {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+
     /* The long form is plain text and may hold several lines — related
-     * locations arrive newline-separated — so its breaks are honoured. */
+     * locations arrive newline-separated — so its breaks are honoured. Hidden
+     * while empty, or the gap before it would read as trailing whitespace on a
+     * message that carries no long form at all. */
     .linter-bubble-detail {
-      margin-top: 6px;
+      flex: 0 1 auto;
+      min-width: 0;
       font-size: 0.9em;
       color: var(--text-color-subtle);
       white-space: pre-line;
+
+      &:empty {
+        display: none;
+      }
     }
 
     .linter-log-ref {
-      display: inline-block;
-      margin-top: 6px;
+      flex: 0 0 auto;
       padding: 2px 6px;
       font-size: 0.85em;
       color: var(--text-color-subtle);
