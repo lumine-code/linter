@@ -443,151 +443,124 @@
   }
 }
 
-.linter-bubble-tooltip {
-  position: fixed;
-  max-width: 600px;
-  z-index: 1000;
-  background-color: var(--base-background-color);
-  border: 1px solid var(--base-border-color);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  font-size: 0.9em;
+/* Messages inside the hover package's tooltip. That package owns the surface —
+   its border, its delays, when it comes and goes — and this is only what
+   stands on it: one row per message, severity on the left, where it came from
+   underneath. */
+
+.linter-hover {
+  --linter-hover-accent: var(--text-color-subtle);
+
+  display: grid;
+  /* No size of its own: the tooltip sets the reading size for everything
+     standing on it, and declaring the interface size here would undo it. */
+  line-height: var(--prose-line-height);
+}
+
+.linter-hover-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5em;
+  padding: calc(var(--component-padding) / 2) var(--component-padding);
+  border-left: 2px solid var(--linter-hover-accent);
+}
+
+/* One message reads as one block; several need telling apart. */
+.linter-hover-item + .linter-hover-item {
+  border-top: 1px solid var(--overlay-border-color);
+}
+
+.linter-hover-item.error {
+  --linter-hover-accent: var(--text-color-error);
+}
+
+.linter-hover-item.warning {
+  --linter-hover-accent: var(--text-color-warning);
+}
+
+.linter-hover-item.info {
+  --linter-hover-accent: var(--text-color-info);
+}
+
+.linter-hover-item.hint {
+  --linter-hover-accent: var(--text-color-subtle);
+}
+
+.linter-hover-icon {
+  /* On the first line of the excerpt, whatever the excerpt wraps to. */
+  align-self: start;
+  margin-top: 0.1em;
+
+  &::before {
+    margin-right: 0;
+  }
+}
+
+.linter-hover-body {
+  min-width: 0;
+}
+
+.linter-hover-excerpt {
+  color: var(--text-color-highlight);
+  overflow-wrap: anywhere;
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+
+  p {
+    margin: 0 0 0.3em;
+  }
+
+  code {
+    padding: 0 0.3em;
+    border-radius: var(--component-border-radius);
+    background-color: rgb(from var(--text-color) r g b / 8%);
+  }
+}
+
+/* Where the message came from, and what it is called there. */
+.linter-hover-meta {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  flex-wrap: wrap;
+  gap: 0 0.75em;
+  align-items: baseline;
+  margin-top: 0.15em;
+  color: var(--text-color-subtle);
+}
 
-  /* Animation */
-  opacity: 0;
-  transform: translateY(4px);
-  transition:
-    opacity 0.15s ease-out,
-    transform 0.15s ease-out;
+.linter-hover-source {
+  text-transform: lowercase;
+}
 
-  &.visible {
-    opacity: 1;
-    transform: translateY(0);
+/* The provider's long form: a rule code, a related location. Plain text, since
+   markdown would reflow exactly the things it is precise about. The colon
+   belongs to the pair, so it is drawn here and stays away when the long form
+   has nothing to say. */
+.linter-hover-detail {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+
+  &:empty {
+    display: none;
   }
 
-  &.hiding {
-    opacity: 0;
-    transform: translateY(-4px);
+  /* Against the gap between the two, so the colon sits on the name. */
+  &::before {
+    content: ":";
+    margin-left: -0.75em;
+    margin-right: 0.25em;
   }
+}
 
-  &.error {
-    border-color: var(--background-color-error);
-  }
-  &.warning {
-    border-color: var(--background-color-warning);
-  }
-  &.info {
-    border-color: var(--background-color-info);
-  }
-  &.hint {
-    border-color: var(--text-color-hint);
-  }
+.linter-hover-reference {
+  cursor: pointer;
 
-  .linter-bubble-item {
-    display: flex;
-
-    &:not(:last-child) {
-      border-bottom: 1px solid var(--base-border-color);
-    }
-
-    /* contrast(@bg): core already derives readable text for each of the
-     * severity backgrounds in base-variables.css, flipping on perceptual (LCH)
-     * lightness. Do not re-derive it from sRGB HSL lightness here — themes
-     * pick saturated reds and blues that sit at exactly hsl l 50%, where the
-     * flip degenerates to 0 * infinity = NaN and the label loses contrast. */
-    &.error .linter-bubble-sidebar {
-      background-color: var(--background-color-error);
-      color: var(--text-color-on-error);
-    }
-    &.warning .linter-bubble-sidebar {
-      background-color: var(--background-color-warning);
-      color: var(--text-color-on-warning);
-    }
-    &.info .linter-bubble-sidebar {
-      background-color: var(--background-color-info);
-      color: var(--text-color-on-info);
-    }
-    /* Deliberately not a filled chip. --text-color-hint is a neutral grey, and
-     * grey is exactly where the lightness flip that derives --text-color-on-*
-     * is least stable, so there is no readable foreground to pair with it. An
-     * unfilled chip also reads quieter than the three coloured ones. */
-    &.hint .linter-bubble-sidebar {
-      background-color: var(--background-color-highlight);
-      color: var(--text-color);
-    }
-  }
-
-  .linter-bubble-sidebar {
-    padding: 8px;
-    font-size: 0.8em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-  }
-
-  /* One baseline-aligned row, as in the panel: the excerpt leads and the long
-   * form and log reference trail it, wrapping only when they do not fit. */
-  .linter-bubble-content {
-    padding: 8px;
-    flex: 1;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    column-gap: 0.5em;
-    row-gap: 4px;
-
-    p {
-      margin: 0;
-    }
-
-    code {
-      background-color: var(--background-color-highlight);
-      padding: 1px 4px;
-      border-radius: 2px;
-    }
-
-    .linter-bubble-excerpt {
-      flex: 0 1 auto;
-      min-width: 0;
-    }
-
-    /* The long form is plain text and may hold several lines — related
-     * locations arrive newline-separated — so its breaks are honoured. Hidden
-     * while empty, or the gap before it would read as trailing whitespace on a
-     * message that carries no long form at all. */
-    .linter-bubble-detail {
-      flex: 0 1 auto;
-      min-width: 0;
-      font-size: 0.9em;
-      color: var(--text-color-subtle);
-      white-space: pre-line;
-
-      &:empty {
-        display: none;
-      }
-    }
-
-    .linter-log-ref {
-      flex: 0 0 auto;
-      padding: 2px 6px;
-      font-size: 0.85em;
-      color: var(--text-color-subtle);
-      background-color: rgb(from var(--background-color-highlight) r g b / 0.5);
-      border-radius: 3px;
-      cursor: pointer;
-      text-decoration: none;
-      transition:
-        background-color 0.15s ease,
-        color 0.15s ease;
-
-      &:hover {
-        color: var(--text-color-highlight);
-        background-color: var(--background-color-highlight);
-      }
-    }
+  &:hover {
+    text-decoration: underline;
   }
 }

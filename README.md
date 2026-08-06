@@ -9,14 +9,14 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 - **Unified package**: combines linter core functionality with UI in a single package.
 - **Status bar integration**: shows a count per severity in the status bar, with mouse shortcuts for toggling the panel and stepping through messages.
 - **Linter panel**: sortable table view of all linter messages with filtering, and keyboard navigation when focused. Each row carries the provider's long form beside the excerpt, such as a rule code.
-- **Inline bubbles**: hover-style message display at the cursor position, excerpt and long form together.
+- **Hover messages**: shows the messages under the pointer, or the whole line's when the pointer rests on the gutter dot, through the `hover` package's tooltip.
 - **Editor highlighting**: underline and gutter decorations for linted ranges.
 - **Multiple sort methods**: sort by severity, position, or provider. Cell index is used as a primary sort key for notebook messages.
 - **Linter management**: enable or disable individual linter providers.
 - **Jupyter notebook support**: works with `.ipynb` files through the `linter.adapter` service. Messages are mapped to individual cells and the panel shows `[cell]:line:col` position.
 - **Scrollmap markers**: exposes linter markers to scrollbar-overview packages through the `linter.ui` service.
 - **Reference links**: clickable references in messages open related files, and a "more info" link opens the provider's documentation in the browser.
-- **Markdown rendering**: message excerpts support markdown formatting in tooltips and the panel.
+- **Markdown rendering**: message excerpts support markdown formatting in the hover tooltip and the panel.
 - **MCP tool**: provides a read-only `GetLinterMessages` tool through the `mcp.tools` service.
 
 ## Installation
@@ -78,6 +78,7 @@ Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
 - **[linter.registry](docs/linter.registry.md)** (`1.0.0`): provided to let packages push messages directly without implementing a full linter provider.
 - **intentions.list** (`1.0.0`): provided to expose message solutions as quick-fix code actions at the cursor.
 - **mcp.tools** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
+- **hover.provider** (`1.0.0`): provided to show the messages under the pointer in the `hover` package's tooltip, ahead of any documentation source.
 - **[linter.provider](docs/linter.provider.md)** (`^1.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
 - **[linter.ui](docs/linter.ui.md)** (`^1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.
 - **[linter.adapter](docs/linter.adapter.md)** (`^1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
