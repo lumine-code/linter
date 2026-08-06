@@ -68,6 +68,11 @@
       "versions": {
         "1.0.0": "provideMcpTools"
       }
+    },
+    "hover.provider": {
+      "versions": {
+        "1.0.0": "provideHover"
+      }
     }
   },
   "activationHooks": [
@@ -151,7 +156,7 @@
     },
     "showHoverTooltip": {
       "title": "Show Hover Tooltip",
-      "description": "Show linter messages when hovering over issues in the editor",
+      "description": "Show linter messages in the tooltip of the `hover` package when the pointer rests on an issue or on its gutter dot. Requires that package.",
       "type": "boolean",
       "default": true
     },
