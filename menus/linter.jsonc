@@ -4,8 +4,8 @@
     "atom-text-editor:not([mini])": [
       { "type": "separator" },
       { "label": "Inspect Issue", "command": "linter:inspect" },
-      { "type": "separator" },
-    ],
+      { "type": "separator" }
+    ]
   },
   // Packages > Linter menu.
   "menu": [
@@ -24,10 +24,10 @@
             { "label": "Inspect Issue", "command": "linter:inspect" },
             { "type": "separator" },
             { "label": "Toggle Linter", "command": "linter:toggle-linter" },
-            { "label": "Toggle Current File Linting", "command": "linter:toggle-current-file" },
-          ],
-        },
-      ],
-    },
-  ],
+            { "label": "Toggle Current File Linting", "command": "linter:toggle-current-file" }
+          ]
+        }
+      ]
+    }
+  ]
 }
