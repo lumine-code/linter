@@ -180,11 +180,21 @@
       "type": "boolean",
       "default": true
     },
-    "editorScrollPosition": {
-      "title": "Editor scroll position",
-      "description": "Scroll zone as % of viewport height. Single value e.g. `0` is strict mode (always scroll cursor to that position). Two values e.g. `0-50` define a lazy zone (scroll only when cursor exits the zone). 0 = top margin, 100 = bottom margin.",
-      "type": "string",
-      "default": "0-50"
+    "editorScrollZone": {
+      "title": "Editor scroll zone",
+      "description": "Where the cursor lands after jumping to a message, as a % of viewport height. One value e.g. `25` always scrolls it there. Two are a band it may sit in untouched: `0, 50` moves it to the edge it crossed, `50, 0` throws it to the opposite edge for maximum room ahead. 0 = top margin, 100 = bottom margin.",
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "minItems": 1,
+      "maxItems": 2,
+      "default": [
+        0,
+        50
+      ]
     }
   }
 }
