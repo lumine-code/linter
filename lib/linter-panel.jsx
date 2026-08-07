@@ -1,6 +1,7 @@
 /** @jsx etch.dom */
 const etch = require("@lumine-code/etch");
 const path = require("path");
+const { CompositeDisposable } = require("atom");
 const Severities = require("./severities");
 const {
   getDescription,
@@ -74,32 +75,40 @@ class LinterPanel {
     });
 
     // Register context menu and keyboard navigation commands
-    this._disposables = atom.commands.add(this.element, {
-      "linter:copy-description": () => this._copyDescription(),
-      "linter:copy-details": () => this._copyDetails(),
-      "core:move-up": (e) => {
-        e.stopPropagation();
-        this._moveFocusUp();
-      },
-      "core:move-down": (e) => {
-        e.stopPropagation();
-        this._moveFocusDown();
-      },
-      "core:confirm": (e) => {
-        e.stopPropagation();
-        this._confirmFocused();
-      },
-      "core:cancel": (e) => {
-        e.stopPropagation();
-        this._cancelFocus();
-      },
-    });
-    atom.contextMenu.add({
-      ".linter-wrapper .linter-row": [
-        { label: "Copy Description", command: "linter:copy-description" },
-        { label: "Copy Details", command: "linter:copy-details" },
-      ],
-    });
+    this._disposables = new CompositeDisposable();
+    this._disposables.add(
+      atom.commands.add(this.element, {
+        "linter:copy-description": () => this._copyDescription(),
+        "linter:copy-details": () => this._copyDetails(),
+        "core:move-up": (e) => {
+          e.stopPropagation();
+          this._moveFocusUp();
+        },
+        "core:move-down": (e) => {
+          e.stopPropagation();
+          this._moveFocusDown();
+        },
+        "core:confirm": (e) => {
+          e.stopPropagation();
+          this._confirmFocused();
+        },
+        "core:cancel": (e) => {
+          e.stopPropagation();
+          this._cancelFocus();
+        },
+      }),
+      // Disposed with the panel: a panel is built again on every toggle, and
+      // atom.contextMenu.add never de-duplicates, so a discarded disposable
+      // means one more copy of these two items on every visit.
+      atom.contextMenu.add({
+        ".linter-wrapper .linter-row": [
+          { type: "separator" },
+          { label: "Copy Description", command: "linter:copy-description" },
+          { label: "Copy Details", command: "linter:copy-details" },
+          { type: "separator" },
+        ],
+      }),
+    );
   }
 
   /**

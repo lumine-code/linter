@@ -1,7 +1,11 @@
 {
   // Right-click an editor to inspect the message under the cursor.
   "context-menu": {
-    "atom-text-editor:not([mini])": [{ "label": "Inspect issue", "command": "linter:inspect" }],
+    "atom-text-editor:not([mini])": [
+      { "type": "separator" },
+      { "label": "Inspect Issue", "command": "linter:inspect" },
+      { "type": "separator" },
+    ],
   },
   // Packages > Linter menu.
   "menu": [
