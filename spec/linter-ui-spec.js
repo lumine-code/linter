@@ -275,6 +275,39 @@ describe("lib/linter-ui", () => {
     });
   });
 
+  // Every spec above carries a `location.buffer`, which short-circuits the
+  // matching. A provider that reports only a path — every language server does
+  // — goes through the branch below instead.
+  describe("matching a message to a buffer by path", () => {
+    const windows = process.platform === "win32";
+    const byPath = (file) => ({
+      severity: "error",
+      excerpt: "reported by path",
+      location: {
+        file,
+        position: [
+          [0, 6],
+          [0, 12],
+        ],
+      },
+    });
+
+    it("finds the buffer when the provider spells the path its own way", () => {
+      // Pyright and tsserver answer with a lowercase drive letter for the
+      // `C:\…` they were handed. It is the same file, and it has to be treated
+      // as one, or the message is stored and never shown.
+      buffer.setPath(windows ? "C:\\project\\main.py" : "/project/main.py");
+      publish([byPath(windows ? "c:/project/main.py" : "/project/main.py")]);
+      expect(ui.getCurrentMessages().map((m) => m.excerpt)).toEqual(["reported by path"]);
+    });
+
+    it("still keeps a different file apart", () => {
+      buffer.setPath(windows ? "C:\\project\\main.py" : "/project/main.py");
+      publish([byPath(windows ? "C:\\project\\other.py" : "/project/other.py")]);
+      expect(ui.getCurrentMessages()).toEqual([]);
+    });
+  });
+
   describe("dispose", () => {
     it("destroys both axes of layers", () => {
       const severityLayer = buffer.linterUI.severityLayers.hint;

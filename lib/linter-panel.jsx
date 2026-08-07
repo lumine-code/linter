@@ -2,7 +2,12 @@
 const etch = require("@lumine-code/etch");
 const path = require("path");
 const Severities = require("./severities");
-const { getDescription, hasLazyDescription, resolveDescription } = require("./helpers");
+const {
+  getDescription,
+  hasLazyDescription,
+  resolveDescription,
+  normalizePath,
+} = require("./helpers");
 
 // Precomputed per-severity cell class, to avoid rebuilding it in the render loop
 const SEVERITY_CLASS = new Map(
@@ -236,7 +241,7 @@ class LinterPanel {
     const messages = this._getMessages();
     const sortedMessages = this._getSortedMessages(messages);
     const curpos = this.editor.getCursorBufferPosition();
-    const editorPath = this.viewMode === "project" ? this.editor.getPath?.() : null;
+    const editorPath = this.viewMode === "project" ? normalizePath(this.editor.getPath?.()) : null;
 
     // Find which row (in visible filtered order) contains cursor
     let newRowIndex = -1;
@@ -246,7 +251,7 @@ class LinterPanel {
       // Apply same visibility filters as render
       if (!this.isSeverityVisible(message.severity)) continue;
 
-      if (editorPath && message.location.file !== editorPath) {
+      if (editorPath && normalizePath(message.location.file) !== editorPath) {
         visibleIndex++;
         continue;
       }
