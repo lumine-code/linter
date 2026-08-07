@@ -1,6 +1,36 @@
 const Helpers = require("../lib/helpers");
 
 describe("lib/helpers", () => {
+  describe("normalizePath", () => {
+    // Providers disagree about how to spell a path. A language server commonly
+    // answers with a lowercase drive letter for the `C:\…` it was given, and
+    // compared raw that is a different file — so its messages were stored under
+    // one spelling, looked up under another, and shown nowhere.
+    const windows = process.platform === "win32";
+
+    it("gives one key to the spellings Windows treats as one file", () => {
+      const a = Helpers.normalizePath("C:\\Users\\me\\project\\main.py");
+      const b = Helpers.normalizePath("c:\\Users\\me\\project\\main.py");
+      const c = Helpers.normalizePath("C:/Users/me/project/main.py");
+      expect(`${a === b} ${a === c}`).toBe(windows ? "true true" : "false false");
+    });
+
+    it("keeps POSIX paths exact, where case and separator are meaningful", () => {
+      // Only asserted off Windows: two files really can differ by case there.
+      if (windows) return;
+      expect(Helpers.normalizePath("/home/me/Main.py")).not.toBe(
+        Helpers.normalizePath("/home/me/main.py"),
+      );
+      expect(Helpers.normalizePath("/home/me/main.py")).toBe("/home/me/main.py");
+    });
+
+    it("has no key for something that is not a path", () => {
+      expect(Helpers.normalizePath(undefined)).toBeNull();
+      expect(Helpers.normalizePath(null)).toBeNull();
+      expect(Helpers.normalizePath(42)).toBeNull();
+    });
+  });
+
   describe("isPathIgnored", () => {
     it("treats a missing path as ignored", async () => {
       expect(await Helpers.isPathIgnored(null, "**/*.min.{js,css}", false)).toBe(true);
