@@ -620,7 +620,11 @@ class LinterPanel {
     }
 
     return (
-      <div class="linter-wrapper" tabIndex="0">
+      // tabIndex -1, not 0. Every other focusable panel in the fleet uses -1:
+      // the panel is reached with alt-l or a click, not by tabbing through the
+      // window, and 0 puts it in the document's tab order between the editor
+      // and whatever comes next.
+      <div class="linter-wrapper" tabIndex="-1">
         <table class="linter-table">
           <thead>{head}</thead>
           <tbody on={{ click: this._onRowClick }}>{data}</tbody>
