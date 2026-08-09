@@ -29,7 +29,7 @@ describe("linter package assets", () => {
 
   it("uses the linter: command prefix in the keymap and menu", () => {
     const keymap = parseJsonc("keymaps/linter.jsonc");
-    expect(keymap["atom-workspace"]["alt-l"]).toBe("linter:toggle-focus");
+    expect(keymap["lumine-workspace"]["alt-l"]).toBe("linter:toggle-focus");
 
     const menu = parseJsonc("menus/linter.jsonc");
     const flat = JSON.stringify(menu);
@@ -62,7 +62,7 @@ describe("linter package assets", () => {
     expect(pkg.repository).toBe("https://github.com/lumine-code/linter");
     expect(pkg.dependencies.lodash).toBeUndefined();
     expect(pkg.dependencies["@lumine-code/etch"]).toBeDefined();
-    // The editor provides the list through atom.workspace.buildSelectList.
+    // The editor provides the list through lumine.workspace.buildSelectList.
     expect(pkg.dependencies["@lumine-code/select-list"]).toBeUndefined();
     expect(pkg.dependencies["@asiloisad/select-list"]).toBeUndefined();
     expect(pkg.dependencies.etch).toBeUndefined();

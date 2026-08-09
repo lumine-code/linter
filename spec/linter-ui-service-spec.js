@@ -41,15 +41,15 @@ describe("lib/linter-main linting progress", () => {
     // Linter is constructed directly rather than through the package, so
     // register the schema the way package load would: the registry and the lint
     // path read several of its defaults and throw on undefined.
-    atom.config.setSchema("linter", {
+    lumine.config.setSchema("linter", {
       type: "object",
       properties: require("../package.json").configSchema,
     });
     // addLinter lints every open editor when lint-on-open is enabled, which
     // would race a second run against the one each spec triggers.
-    atom.config.set("linter.lintOnOpen", false);
-    atom.config.set("linter.lintOnChange", false);
-    editor = await atom.workspace.open("progress.js");
+    lumine.config.set("linter.lintOnOpen", false);
+    lumine.config.set("linter.lintOnChange", false);
+    editor = await lumine.workspace.open("progress.js");
     instance = new Linter();
   });
 

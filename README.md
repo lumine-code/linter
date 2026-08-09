@@ -25,7 +25,7 @@ To install `linter` search for _linter_ in the Install pane of the Lumine settin
 
 ## Commands
 
-Commands available in `atom-workspace`:
+Commands available in `lumine-workspace`:
 
 - `linter:toggle-focus`: focus the panel (or return focus to the editor if already focused), opening the panel if needed,
 - `linter:toggle-panel`: toggle the linter panel visibility,

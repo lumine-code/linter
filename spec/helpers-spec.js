@@ -37,7 +37,7 @@ describe("lib/helpers", () => {
     });
 
     it("matches the ignore glob when the VCS check is disabled", async () => {
-      // ignoredVCS = false, so this never touches atom.project (no repo needed).
+      // ignoredVCS = false, so this never touches lumine.project (no repo needed).
       expect(await Helpers.isPathIgnored("src/vendor/lib.min.js", "**/*.min.{js,css}", false)).toBe(
         true,
       );

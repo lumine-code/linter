@@ -1,10 +1,10 @@
 {
   // Focus the linter panel (or return focus to the editor when already focused).
-  "atom-workspace": {
+  "lumine-workspace": {
     "alt-l": "linter:toggle-focus"
   },
   // Step through messages in the active editor.
-  "atom-text-editor:not([mini])": {
+  "lumine-text-editor:not([mini])": {
     "alt-;": "linter:previous",
     "alt-'": "linter:next"
   },

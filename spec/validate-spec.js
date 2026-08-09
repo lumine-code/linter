@@ -5,7 +5,7 @@ const Validate = require("../lib/validate");
 // true silently. Spy the notification so the invalid-case tests stay quiet.
 describe("lib/validate", () => {
   beforeEach(() => {
-    spyOn(atom.notifications, "addWarning");
+    spyOn(lumine.notifications, "addWarning");
   });
 
   describe("linter", () => {
@@ -19,12 +19,12 @@ describe("lib/validate", () => {
 
     it("accepts a well-formed provider", () => {
       expect(Validate.linter(good)).toBe(true);
-      expect(atom.notifications.addWarning).not.toHaveBeenCalled();
+      expect(lumine.notifications.addWarning).not.toHaveBeenCalled();
     });
 
     it("rejects an invalid scope and warns", () => {
       expect(Validate.linter({ ...good, scope: "nope" })).toBe(false);
-      expect(atom.notifications.addWarning).toHaveBeenCalled();
+      expect(lumine.notifications.addWarning).toHaveBeenCalled();
     });
   });
 
@@ -93,7 +93,7 @@ describe("lib/validate", () => {
 
     it("names every severity when rejecting one", () => {
       Validate.messages("my-linter", [{ ...good, severity: "boom" }]);
-      const [, options] = atom.notifications.addWarning.calls.mostRecent().args;
+      const [, options] = lumine.notifications.addWarning.calls.mostRecent().args;
       expect(options.detail).toContain("'error', 'warning', 'info' or 'hint'");
     });
 

@@ -40,7 +40,7 @@ describe("lib/status", () => {
   });
 
   it("describes each status interaction in a composite tooltip", () => {
-    const [tooltip] = atom.tooltips.findTooltips(status.element);
+    const [tooltip] = lumine.tooltips.findTooltips(status.element);
     const content = document.createElement("div");
     content.innerHTML = tooltip.getTitle();
     const rows = content.querySelectorAll(".tooltip-composite-item");
@@ -109,7 +109,7 @@ describe("lib/status", () => {
     // A file whose only diagnostics are hints is still clean, which is what
     // turning statusMode off asks the band to respect.
     it("does not keep the band open on its own", () => {
-      atom.config.set("linter.statusMode", false);
+      lumine.config.set("linter.statusMode", false);
       messages = [message("hint")];
       status.update();
       expect(status.element.classList).toContain("linter-status-hidden");

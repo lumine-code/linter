@@ -1,7 +1,7 @@
 /** @jsx etch.dom */
 const etch = require("@lumine-code/etch");
 const path = require("path");
-const { CompositeDisposable } = require("atom");
+const { CompositeDisposable } = require("lumine");
 const Severities = require("./severities");
 const {
   getDescription,
@@ -24,7 +24,7 @@ class LinterPanel {
     this.editor = null;
     this.cwatch = null;
     this.viewMode = "file"; // "file" or "project"
-    this.sortMethod = atom.config.get("linter.defaultSortMethod") || "severity";
+    this.sortMethod = lumine.config.get("linter.defaultSortMethod") || "severity";
     this.sortDirection = "asc";
     // Severities the user has filtered out. Empty means "show everything", so a
     // severity the panel has never heard of stays visible rather than being
@@ -77,7 +77,7 @@ class LinterPanel {
     // Register context menu and keyboard navigation commands
     this._disposables = new CompositeDisposable();
     this._disposables.add(
-      atom.commands.add(this.element, {
+      lumine.commands.add(this.element, {
         "linter:copy-description": () => this._copyDescription(),
         "linter:copy-details": () => this._copyDetails(),
         "core:move-up": (e) => {
@@ -98,9 +98,9 @@ class LinterPanel {
         },
       }),
       // Disposed with the panel: a panel is built again on every toggle, and
-      // atom.contextMenu.add never de-duplicates, so a discarded disposable
+      // lumine.contextMenu.add never de-duplicates, so a discarded disposable
       // means one more copy of these two items on every visit.
-      atom.contextMenu.add({
+      lumine.contextMenu.add({
         ".linter-wrapper .linter-row": [
           { type: "separator" },
           { label: "Copy Description", command: "linter:copy-description" },
@@ -155,7 +155,7 @@ class LinterPanel {
       const line = parseInt(logRef.dataset.line, 10);
       const column = parseInt(logRef.dataset.column, 10) || 0;
       if (file) {
-        atom.workspace.open(file, {
+        lumine.workspace.open(file, {
           initialLine: line,
           initialColumn: column,
           pending: true,
@@ -169,7 +169,7 @@ class LinterPanel {
     if (moreInfo) {
       event.stopPropagation();
       if (moreInfo.dataset.url) {
-        atom.shell.openExternal(moreInfo.dataset.url);
+        lumine.shell.openExternal(moreInfo.dataset.url);
       }
       return;
     }
@@ -199,7 +199,7 @@ class LinterPanel {
 
     if (this.viewMode === "project") {
       // In project mode, open the file and navigate to position
-      atom.workspace.open(message.location.file, {
+      lumine.workspace.open(message.location.file, {
         initialLine: message.location.position.start.row,
         initialColumn: message.location.position.start.column,
         pending: true,
@@ -360,7 +360,7 @@ class LinterPanel {
     const message = this._contextMessage();
     if (!message) return;
     resolveDescription(message).then((description) => {
-      atom.clipboard.write([message.excerpt, description].filter(Boolean).join("\n\n"));
+      lumine.clipboard.write([message.excerpt, description].filter(Boolean).join("\n\n"));
     });
   }
 
@@ -375,7 +375,7 @@ class LinterPanel {
   _copyDetails() {
     const message = this._contextMessage();
     if (!message) return;
-    atom.clipboard.write(
+    lumine.clipboard.write(
       JSON.stringify(
         message,
         (k, v) => (k === "key" || k === "version" || k === "displayRange" ? undefined : v),
@@ -389,7 +389,7 @@ class LinterPanel {
    */
   _abbreviatePath(filePath) {
     if (!filePath) return "";
-    const projectPaths = atom.project.getPaths();
+    const projectPaths = lumine.project.getPaths();
     const multiProject = projectPaths.length > 1;
     for (const projectPath of projectPaths) {
       if (filePath.startsWith(projectPath)) {
@@ -576,7 +576,7 @@ class LinterPanel {
       // resolved description, an affordance to resolve a lazy one, and the
       // "more info" link for `url`.
       const descriptionContent = [
-        <span class="linter-excerpt" innerHTML={atom.tools.markdown.render(message.excerpt)} />,
+        <span class="linter-excerpt" innerHTML={lumine.tools.markdown.render(message.excerpt)} />,
       ];
       const description = getDescription(message);
       if (description) {
@@ -650,9 +650,9 @@ class LinterPanel {
   }
 
   toggle() {
-    const refocus = atom.workspace.getActivePaneItem() != this;
+    const refocus = lumine.workspace.getActivePaneItem() != this;
     let prev = document.activeElement;
-    atom.workspace.toggle(this).then(() => {
+    lumine.workspace.toggle(this).then(() => {
       if (refocus) {
         prev.focus();
       }
@@ -754,7 +754,7 @@ class LinterPanel {
     if (!message) return;
     this._setFocusedMessage(null);
     if (this.viewMode === "project") {
-      atom.workspace.open(message.location.file, {
+      lumine.workspace.open(message.location.file, {
         initialLine: message.location.position.start.row,
         initialColumn: message.location.position.start.column,
         pending: true,
@@ -766,7 +766,7 @@ class LinterPanel {
 
   _cancelFocus() {
     this._setFocusedMessage(null);
-    const editor = atom.workspace.getActiveTextEditor();
+    const editor = lumine.workspace.getActiveTextEditor();
     if (editor) editor.element.focus();
   }
 
@@ -776,7 +776,7 @@ class LinterPanel {
       return;
     }
     // Focus only: the cursor does not exist until the first arrow press.
-    atom.workspace.open(this, { searchAllPanes: true }).then(() => {
+    lumine.workspace.open(this, { searchAllPanes: true }).then(() => {
       this.element.focus();
     });
   }

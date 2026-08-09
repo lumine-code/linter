@@ -46,7 +46,7 @@ jobs:
   integration:
     # Run the Jasmine spec suite inside a real Lumine build. The specs exercise
     # the editor runtime (text-editor marker layers, the @lumine-code/etch view,
-    # the @lumine-code/select-list toggle dialog, and atom.project.repositoryForPath),
+    # the @lumine-code/select-list toggle dialog, and lumine.project.repositoryForPath),
     # so this is the single place they run in CI.
     name: Lumine integration specs
     runs-on: ubuntu-latest

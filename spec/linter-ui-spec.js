@@ -14,9 +14,9 @@ describe("lib/linter-ui", () => {
   // believes it is invisible skips its update entirely, so a workspace-hosted
   // editor in a headless spec never paints the decorations these specs read.
   beforeEach(() => {
-    editor = atom.workspace.buildTextEditor();
+    editor = lumine.workspace.buildTextEditor();
     editor.setText("const unused = 1;\nlegacy();\n");
-    const element = atom.views.getView(editor);
+    const element = lumine.views.getView(editor);
     element.style.height = "600px";
     element.style.width = "800px";
     jasmine.attachToDOM(element);
@@ -58,7 +58,7 @@ describe("lib/linter-ui", () => {
   // the time render() returns, and awaiting a scheduled frame only adds a way
   // for the spec to hang.
   const rendered = (selector) => {
-    const element = atom.views.getView(editor);
+    const element = lumine.views.getView(editor);
     element.getComponent().updateSync();
     return element.querySelectorAll(selector);
   };

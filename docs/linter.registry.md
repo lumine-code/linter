@@ -60,7 +60,7 @@ Messages take the same shape as for [`linter.provider`](linter.provider.md): `se
 ## Minimal example
 
 ```js
-const { Disposable } = require("atom");
+const { Disposable } = require("lumine");
 
 module.exports = {
   consumeLinterRegistry(registerIndie) {

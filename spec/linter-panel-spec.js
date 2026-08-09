@@ -27,7 +27,7 @@ describe("lib/linter-panel", () => {
     );
 
   beforeEach(async () => {
-    atom.config.set("linter.defaultSortMethod", "severity");
+    lumine.config.set("linter.defaultSortMethod", "severity");
     messages = [];
     panel = new LinterPanel({
       getCurrentMessages: () => messages,
@@ -217,13 +217,13 @@ describe("lib/linter-panel", () => {
     });
 
     it("opens the message url externally instead of revealing the message", async () => {
-      spyOn(atom.shell, "openExternal");
+      spyOn(lumine.shell, "openExternal");
       const reveal = spyOn(panel.pkg, "revealMessage");
       await publishOne({ url: "https://docs.astral.sh/ruff/rules/unused-import" });
 
       cell().querySelector(".linter-more-info").click();
 
-      expect(atom.shell.openExternal).toHaveBeenCalledWith(
+      expect(lumine.shell.openExternal).toHaveBeenCalledWith(
         "https://docs.astral.sh/ruff/rules/unused-import",
       );
       expect(reveal).not.toHaveBeenCalled();

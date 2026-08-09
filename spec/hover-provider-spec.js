@@ -11,14 +11,14 @@ describe("lib/hover-provider", () => {
   let provider;
 
   beforeEach(() => {
-    editor = atom.workspace.buildTextEditor();
+    editor = lumine.workspace.buildTextEditor();
     editor.setText("const unused = 1;\nlegacy();\n");
     buffer = editor.getBuffer();
     ui = new LinterUI();
     ui.patchEditor(editor);
     ui.setActiveItem(editor);
     provider = createHoverProvider();
-    atom.config.set("linter.showHoverTooltip", true);
+    lumine.config.set("linter.showHoverTooltip", true);
   });
 
   afterEach(() => {
@@ -84,7 +84,7 @@ describe("lib/hover-provider", () => {
 
     it("declines while the setting is off", () => {
       publish([message()]);
-      atom.config.set("linter.showHoverTooltip", false);
+      lumine.config.set("linter.showHoverTooltip", false);
       expect(provider.hover(editor, { row: 0, column: 8 })).toBe(null);
       expect(provider.hoverGutter(editor, 0)).toBe(null);
     });

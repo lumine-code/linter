@@ -7,7 +7,7 @@ describe("lib/intentions-provider", () => {
   let provider;
 
   beforeEach(() => {
-    editor = atom.workspace.buildTextEditor();
+    editor = lumine.workspace.buildTextEditor();
     editor.getBuffer().setPath(filePath);
     editor.setText("const foo = 1;\n");
     messages = [];
@@ -171,7 +171,7 @@ describe("lib/intentions-provider", () => {
   });
 
   it("returns nothing for editors without a file path", async () => {
-    const pathless = atom.workspace.buildTextEditor();
+    const pathless = lumine.workspace.buildTextEditor();
     addMessage([
       {
         position: [
