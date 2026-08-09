@@ -6,7 +6,7 @@ const jsx = require("./eslint-jsx");
 
 // Modules provided by the Lumine/Electron runtime rather than this package's own
 // manifest, so they aren't resolvable by eslint-plugin-n.
-const runtimeModules = ["atom", "electron", "@electron/remote"];
+const runtimeModules = ["atom", "electron"];
 
 module.exports = [
   js.configs.recommended,
