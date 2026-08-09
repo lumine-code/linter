@@ -217,13 +217,13 @@ describe("lib/linter-panel", () => {
     });
 
     it("opens the message url externally instead of revealing the message", async () => {
-      spyOn(atom, "openExternal");
+      spyOn(atom.shell, "openExternal");
       const reveal = spyOn(panel.pkg, "revealMessage");
       await publishOne({ url: "https://docs.astral.sh/ruff/rules/unused-import" });
 
       cell().querySelector(".linter-more-info").click();
 
-      expect(atom.openExternal).toHaveBeenCalledWith(
+      expect(atom.shell.openExternal).toHaveBeenCalledWith(
         "https://docs.astral.sh/ruff/rules/unused-import",
       );
       expect(reveal).not.toHaveBeenCalled();

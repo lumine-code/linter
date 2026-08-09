@@ -169,7 +169,7 @@ class LinterPanel {
     if (moreInfo) {
       event.stopPropagation();
       if (moreInfo.dataset.url) {
-        atom.openExternal(moreInfo.dataset.url);
+        atom.shell.openExternal(moreInfo.dataset.url);
       }
       return;
     }
