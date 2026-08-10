@@ -60,7 +60,16 @@ module.exports = [
     // the resolver can't follow and use the runner's fake-clock helper.
     files: ["spec/**", "**/*-spec.js"],
     languageOptions: {
-      globals: { ...globals.jasmine, advanceClock: "readonly" },
+      globals: {
+        ...globals.jasmine,
+        advanceClock: "readonly",
+        // Waiting primitives injected onto `window` by the editor's spec harness.
+        conditionPromise: "readonly",
+        emitterEventPromise: "readonly",
+        flushMicrotasks: "readonly",
+        timeoutPromise: "readonly",
+        waitForFrames: "readonly",
+      },
     },
     rules: {
       "n/no-missing-require": "off",
