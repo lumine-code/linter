@@ -9,6 +9,7 @@ describe("lib/linter-ui", () => {
   let ui;
   let editor;
   let buffer;
+  let extraEditors;
 
   // Attach the editor element directly, with an explicit size: a component that
   // believes it is invisible skips its update entirely, so a workspace-hosted
@@ -21,6 +22,7 @@ describe("lib/linter-ui", () => {
     element.style.width = "800px";
     jasmine.attachToDOM(element);
     buffer = editor.getBuffer();
+    extraEditors = [];
     ui = new LinterUI();
     ui.patchEditor(editor);
     ui.setActiveItem(editor);
@@ -30,6 +32,9 @@ describe("lib/linter-ui", () => {
     if (ui) {
       ui.dispose();
       ui = null;
+    }
+    for (const extraEditor of extraEditors) {
+      extraEditor.destroy();
     }
   });
 
@@ -272,6 +277,95 @@ describe("lib/linter-ui", () => {
       );
 
       expect(markers.every((marker) => !marker.isValid())).toBe(true);
+    });
+  });
+
+  describe("adapter marker projection", () => {
+    const buildVisibleEditor = () => {
+      const target = lumine.workspace.buildTextEditor();
+      target.setText("const unused = 1;\n");
+      const element = lumine.views.getView(target);
+      element.style.height = "600px";
+      element.style.width = "800px";
+      jasmine.attachToDOM(element);
+      extraEditors.push(target);
+      ui.patchEditor(target);
+      return target;
+    };
+
+    const renderEditor = (target) => {
+      const element = lumine.views.getView(target);
+      element.getComponent().updateSync();
+      return element.querySelectorAll(".linter-text.hint");
+    };
+
+    it("renders one registry message in every projected split buffer", () => {
+      const splitEditor = buildVisibleEditor();
+      const splitBuffer = splitEditor.getBuffer();
+      const originalBuffer = { name: "notebook source buffer" };
+      const original = message({
+        location: {
+          file: "/notebook.ipynb",
+          buffer: originalBuffer,
+          cell: 1,
+          position: [
+            [0, 6],
+            [0, 12],
+          ],
+        },
+      });
+      ui.addItemAdapter({
+        getMarkerLocationsForMessage: () => [{ buffer }, { buffer: splitBuffer }],
+      });
+
+      publish([original]);
+
+      expect(renderEditor(editor).length).toBeGreaterThan(0);
+      expect(renderEditor(splitEditor).length).toBeGreaterThan(0);
+      expect(ui.allMessages).toEqual([original]);
+      expect(original.location.buffer).toBe(originalBuffer);
+      expect(buffer.linterUI.messages.length).toBe(1);
+      expect(splitBuffer.linterUI.messages.length).toBe(1);
+      expect(buffer.linterUI.messages[0].location.buffer).toBe(buffer);
+      expect(splitBuffer.linterUI.messages[0].location.buffer).toBe(splitBuffer);
+      expect(buffer.linterUI.messages[0].location.displayRange).toBeDefined();
+      expect(splitBuffer.linterUI.messages[0].location.displayRange).toBeDefined();
+    });
+
+    it("removes projected markers from every target buffer", () => {
+      const splitEditor = buildVisibleEditor();
+      const splitBuffer = splitEditor.getBuffer();
+      const original = message();
+      ui.addItemAdapter({
+        getMarkerLocationsForMessage: () => [{ buffer }, { buffer: splitBuffer }],
+      });
+      publish([original]);
+
+      ui.render({ added: [], removed: [original], messages: [] });
+
+      expect(buffer.linterUI.markerMap.size).toBe(0);
+      expect(splitBuffer.linterUI.markerMap.size).toBe(0);
+      expect(buffer.linterUI.messages).toEqual([]);
+      expect(splitBuffer.linterUI.messages).toEqual([]);
+    });
+
+    it("deletes the registry-owned message when a projected marker is invalidated", () => {
+      const original = message();
+      ui.addItemAdapter({
+        getMarkerLocationsForMessage: () => [{ buffer }],
+      });
+      ui.onDeleteMessage = jasmine.createSpy("onDeleteMessage");
+      publish([original]);
+
+      editor.setTextInBufferRange(
+        [
+          [0, 7],
+          [0, 7],
+        ],
+        "x",
+      );
+
+      expect(ui.onDeleteMessage).toHaveBeenCalledWith(original);
     });
   });
 

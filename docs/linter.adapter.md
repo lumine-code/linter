@@ -27,17 +27,18 @@ In your `package.json`:
 
 ## Contract
 
-Every member is a function, and all of them are called. There is no validator for this service, so a missing member surfaces as a `TypeError` at the moment the linter first needs it rather than at registration.
+Every required member is a function, and all required members are called. There is no validator for this service, so a missing required member surfaces as a `TypeError` at the moment the linter first needs it rather than at registration.
 
-| Member                                  | Returns                | Description                                                                                    |
-| --------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------- |
-| `handlesItem(item)`                     | boolean                | Whether this adapter owns the pane item. Asked first, for every adapter, on every pane change. |
-| `getTextEditorForItem(item)`            | `TextEditor`           | The editor the linter should treat as the item's source, for grammar and path detection.       |
-| `getMessagesForItem(item, allMessages)` | `Message[]`            | Narrows the full message set to the ones belonging to this item.                               |
-| `getCurrentMessage(item, messages)`     | `Message \| undefined` | The message at the item's current position, for the panel's "current line" mode.               |
-| `getNextMessage(item, messages)`        | `Message \| undefined` | The next message after the current position, for `linter:next-error`.                          |
-| `getPreviousMessage(item, messages)`    | `Message \| undefined` | The previous one, for `linter:previous-error`.                                                 |
-| `revealMessage(item, message)`          | —                      | Scroll and focus the item so the message is visible.                                           |
+| Member                                  | Returns                            | Description                                                                                    |
+| --------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `handlesItem(item)`                     | boolean                            | Whether this adapter owns the pane item. Asked first, for every adapter, on every pane change. |
+| `getTextEditorForItem(item)`            | `TextEditor`                       | The editor the linter should treat as the item's source, for grammar and path detection.       |
+| `getMessagesForItem(item, allMessages)` | `Message[]`                        | Narrows the full message set to the ones belonging to this item.                               |
+| `getMarkerLocationsForMessage(message)` | `Partial<Location>[] \| undefined` | Optional. Projects one diagnostic onto concrete buffers used for inline markers and hover.     |
+| `getCurrentMessage(item, messages)`     | `Message \| undefined`             | The message at the item's current position, for the panel's "current line" mode.               |
+| `getNextMessage(item, messages)`        | `Message \| undefined`             | The next message after the current position, for `linter:next-error`.                          |
+| `getPreviousMessage(item, messages)`    | `Message \| undefined`             | The previous one, for `linter:previous-error`.                                                 |
+| `revealMessage(item, message)`          | —                                  | Scroll and focus the item so the message is visible.                                           |
 
 ## Minimal example
 
@@ -49,6 +50,7 @@ module.exports = {
       getTextEditorForItem: (item) => item.getSourceEditor(),
       getMessagesForItem: (item, allMessages) =>
         allMessages.filter((message) => message.location?.file === item.getPath()),
+      getMarkerLocationsForMessage: (message) => markerLocationsForMessage(message),
       getCurrentMessage: (item, messages) => item.messageAtCursor(messages),
       getNextMessage: (item, messages) => item.messageAfterCursor(messages),
       getPreviousMessage: (item, messages) => item.messageBeforeCursor(messages),
@@ -65,6 +67,8 @@ An adapter is registered with both halves of the package: the registry, which de
 The editor returned by `getTextEditorForItem` is what providers receive as their `lint(editor)` argument, so its path and grammar determine which providers run at all. It does not have to be attached to a pane — a backing buffer the item keeps for its own purposes is the usual answer.
 
 `getMessagesForItem` is called with every message the linter holds, project-wide. Filtering on `location.file` is the common case, but an item that maps several files, or a slice of one, is free to do something else.
+
+`getMarkerLocationsForMessage` is optional and does not alter the registry or panel message. Return `undefined` when the adapter does not own the diagnostic, an empty array when it owns the diagnostic but no inline target is currently visible, or one location per target buffer. Returning multiple locations renders the same diagnostic in split views without duplicating its panel row. The first adapter to return a value other than `undefined` or `null` owns marker projection for that diagnostic.
 
 Adapters are consulted in registration order and the first one whose `handlesItem` returns `true` wins.
 
