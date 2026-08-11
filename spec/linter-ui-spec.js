@@ -280,6 +280,52 @@ describe("lib/linter-ui", () => {
     });
   });
 
+  // The buffer set is read twice on every publish. It used to be rebuilt from
+  // the workspace each time, which meant flattening every pane container's
+  // items; it is kept now, against the number of editors showing each buffer.
+  describe("which buffers the UI knows about", () => {
+    const buffersOf = () => Array.from(ui.getBuffers());
+
+    it("keeps a buffer while another editor is still showing it", () => {
+      const split = lumine.workspace.buildTextEditor({ buffer });
+      ui.patchEditor(split);
+      expect(buffersOf()).toEqual([buffer]);
+
+      split.destroy();
+
+      expect(buffersOf()).toEqual([buffer]);
+      expect(buffer.linterUI).toBeDefined();
+    });
+
+    it("retires the buffer's layers with the last editor showing it", () => {
+      const other = lumine.workspace.buildTextEditor();
+      const otherBuffer = other.getBuffer();
+      ui.patchEditor(other);
+      const layer = otherBuffer.linterUI.severityLayers.error;
+      expect(buffersOf().length).toBe(2);
+
+      other.destroy();
+
+      expect(buffersOf()).toEqual([buffer]);
+      expect(otherBuffer.linterUI).toBeUndefined();
+      expect(layer.isDestroyed()).toBe(true);
+    });
+
+    it("patches a buffer again after it has been released", () => {
+      const other = lumine.workspace.buildTextEditor();
+      const otherBuffer = other.getBuffer();
+      ui.patchEditor(other);
+      other.destroy();
+
+      const reopened = lumine.workspace.buildTextEditor({ buffer: otherBuffer });
+      extraEditors.push(reopened);
+      ui.patchEditor(reopened);
+
+      expect(otherBuffer.linterUI.severityLayers.error.isDestroyed()).toBe(false);
+      expect(buffersOf().length).toBe(2);
+    });
+  });
+
   describe("adapter marker projection", () => {
     const buildVisibleEditor = () => {
       const target = lumine.workspace.buildTextEditor();
