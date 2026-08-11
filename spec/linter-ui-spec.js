@@ -354,7 +354,7 @@ describe("lib/linter-ui", () => {
       ui.addItemAdapter({
         getMarkerLocationsForMessage: () => [{ buffer }],
       });
-      ui.onDeleteMessage = jasmine.createSpy("onDeleteMessage");
+      ui.onDeleteMessages = jasmine.createSpy("onDeleteMessages");
       publish([original]);
 
       editor.setTextInBufferRange(
@@ -364,8 +364,72 @@ describe("lib/linter-ui", () => {
         ],
         "x",
       );
+      ui.flushPendingDeletions();
 
-      expect(ui.onDeleteMessage).toHaveBeenCalledWith(original);
+      expect(ui.onDeleteMessages).toHaveBeenCalledWith([original]);
+    });
+  });
+
+  // One edit invalidates every marker it touched, and the buffer reports them
+  // one at a time. Asking for each deletion separately re-runs the whole render
+  // pipeline once per message, which is what makes deleting a block of lines in
+  // a heavily linted file stall.
+  describe("batching invalidated markers", () => {
+    it("asks for every message an edit invalidated in one call", async () => {
+      const messages = [
+        message({ excerpt: "one" }),
+        message({
+          excerpt: "two",
+          location: {
+            file: "/spec.js",
+            buffer,
+            position: [
+              [1, 0],
+              [1, 6],
+            ],
+          },
+        }),
+      ];
+      ui.onDeleteMessages = jasmine.createSpy("onDeleteMessages");
+      publish(messages);
+      expect(buffer.linterUI.markerMap.size).toBe(2);
+
+      // One edit spanning both messages, so both markers invalidate together.
+      buffer.setTextInRange(
+        [
+          [0, 0],
+          [1, 9],
+        ],
+        "",
+      );
+      await Promise.resolve();
+
+      expect(ui.onDeleteMessages.calls.count()).toBe(1);
+      expect(
+        ui.onDeleteMessages.calls
+          .argsFor(0)[0]
+          .map((m) => m.excerpt)
+          .sort(),
+      ).toEqual(["one", "two"]);
+    });
+
+    it("drops queued deletions when the UI is disposed before the flush", async () => {
+      const deleted = [];
+      ui.onDeleteMessages = (list) => deleted.push(...list);
+      publish([message()]);
+
+      buffer.setTextInRange(
+        [
+          [0, 0],
+          [0, 17],
+        ],
+        "",
+      );
+      ui.dispose();
+      ui = null;
+      await Promise.resolve();
+
+      expect(deleted).toEqual([]);
     });
   });
 
