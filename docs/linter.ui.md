@@ -55,6 +55,7 @@ What `attach` receives. Each member answers something a message change cannot.
 | `revealMessage(message)`      | —                       | Scroll to a message and focus it, through whatever adapter owns its item.                    |
 | `deleteMessages(messages)`    | —                       | Remove them from the registry.                                                               |
 | `isLintingDisabled(editor)`   | `boolean`               | Whether the user turned linting off for that editor's buffer.                                |
+| `normalizePath(filePath)`     | `string \| null`        | The spelling `location.normalizedFile` is in. Compare paths with it, never with `===`.       |
 | `getDescription(message)`     | `string \| null`        | The resolved long form, or `null` while a lazy one has not been asked for.                   |
 | `hasLazyDescription(message)` | `boolean`               | Whether there is a long form still to fetch.                                                 |
 | `resolveDescription(message)` | `Promise<string\|null>` | Fetches it. Memoized, so a provider's function runs once however many UIs ask.               |
