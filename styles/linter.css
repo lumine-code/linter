@@ -135,6 +135,10 @@
   height: 100%;
   min-height: 0;
 
+  /* One line of text plus the cell padding below. The panel reads this back to
+   * decide which rows to render, so it has to resolve to a pixel length. */
+  --linter-row-height: 2.1em;
+
   .linter-table {
     width: 100%;
     height: 100%;
@@ -351,18 +355,26 @@
       }
     }
 
-    /* Excerpt, then the long form and the links, laid out inline. Wrapping is
-     * allowed so a long excerpt keeps growing the row rather than truncating,
-     * which is what the cell did before it had anything beside the excerpt. */
+    /* Excerpt, then the long form and the links, laid out inline on one line.
+     *
+     * This used to wrap so a long excerpt grew its row instead of truncating.
+     * It no longer may: the list only renders the rows the viewport can show,
+     * and finding which those are means every row being the same height. The
+     * full text is still a click away on the details affordance, and the hover
+     * tooltip carries it too. */
     .linter-description {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: baseline;
       column-gap: 0.5em;
+      overflow: hidden;
 
       .linter-excerpt {
         flex: 0 1 auto;
         min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .linter-detail {
@@ -397,7 +409,23 @@
       }
     }
 
+    /* Stands in for the rows above and below the window that were not rendered,
+     * so the scrollbar reflects the whole list. It has no cells and must not
+     * pick up any of the row styling. */
+    .linter-spacer {
+      padding: 0;
+      border: none;
+      background: none;
+      pointer-events: none;
+    }
+
     .linter-row {
+      /* Every row is exactly this tall, and the panel reads the value back to
+       * work out which rows the viewport is showing. Change it here and the
+       * arithmetic follows; hard-code a height anywhere else and it will not. */
+      height: var(--linter-row-height);
+      box-sizing: border-box;
+
       /* Transparent by default so a row of unknown severity still gets neutral
        * hover feedback: rgb(from transparent r g b / 0.08) is a faint black. */
       --linter-severity-background: transparent;

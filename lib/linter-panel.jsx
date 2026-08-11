@@ -37,6 +37,16 @@ class LinterPanel {
     this._lastMessages = null;
     this._lastSortMethod = null;
     this._lastSortDirection = null;
+    // The severity filter is a Set that is mutated in place, so the visible-row
+    // cache watches this counter rather than the Set itself.
+    this._filterGeneration = 0;
+    this._visibleCache = null;
+    // Only the rows the viewport can show are rendered; the rest of the scroll
+    // height is two spacer rows. Everything outside `render` addresses rows by
+    // their index in the visible list, never by their position in the DOM.
+    this._rowHeight = 0;
+    this._window = { start: 0, end: 0 };
+    this._onScroll = this._onScroll.bind(this);
     // Track current highlighted row for CSS-only updates
     this._currentRowIndex = -1;
     // Track right-clicked row for context menu
@@ -75,6 +85,23 @@ class LinterPanel {
       const row = e.target.closest(".linter-row");
       this._contextRow = row;
     });
+
+    // Scrolling changes which rows exist. Passive, because the handler never
+    // calls preventDefault and a non-passive wheel path on a list this long is
+    // exactly what stutters.
+    const scrollContainer = this._scrollContainer();
+    if (scrollContainer) {
+      scrollContainer.addEventListener("scroll", this._onScroll, { passive: true });
+
+      // The viewport height decides how many rows are wanted, and the row height
+      // is an em, so both move when the dock is resized or the font changes.
+      // Drop the measurement so the next one is taken against the new layout.
+      this._resizeObserver = new ResizeObserver(() => {
+        this._rowHeight = 0;
+        this._onScroll();
+      });
+      this._resizeObserver.observe(scrollContainer);
+    }
 
     // Register context menu and keyboard navigation commands
     this._disposables = new CompositeDisposable();
@@ -275,9 +302,15 @@ class LinterPanel {
     const tbody = this.element.querySelector("tbody");
     if (!tbody) return;
 
+    // Rows are addressed by their visible index, not by their place among the
+    // tbody's children: a windowed render puts a spacer first and leaves most
+    // of the list out of the DOM entirely.
+    const rowAt = (visibleIndex) =>
+      tbody.querySelector(`.linter-row[data-visible-index="${visibleIndex}"]`);
+
     // Remove current class from old row
     if (this._currentRowIndex >= 0) {
-      const oldRow = tbody.children[this._currentRowIndex];
+      const oldRow = rowAt(this._currentRowIndex);
       if (oldRow) {
         oldRow.classList.remove("current");
       }
@@ -285,7 +318,7 @@ class LinterPanel {
 
     // Add current class to new row
     if (newRowIndex >= 0) {
-      const newRow = tbody.children[newRowIndex];
+      const newRow = rowAt(newRowIndex);
       if (newRow) {
         newRow.classList.add("current");
       }
@@ -405,6 +438,11 @@ class LinterPanel {
     if (this._disposables) {
       this._disposables.dispose();
     }
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+    this._scrollContainer()?.removeEventListener("scroll", this._onScroll);
     etch.destroy(this);
   }
 
@@ -413,7 +451,15 @@ class LinterPanel {
     const currentRow = this.element?.querySelector(".linter-row.current");
     if (currentRow) currentRow.classList.remove("current");
     this._currentRowIndex = -1;
-    return etch.update(this);
+    return etch.update(this).then(() => {
+      // The first render had no row to measure and put up a bootstrap window.
+      // Now that one exists, take the real window rather than waiting for a
+      // scroll that may never come. `_rowHeight` is set from here on, so this
+      // corrects itself once and cannot loop.
+      if (!this._rowHeight && this._measureRowHeight()) {
+        return this._onScroll();
+      }
+    });
   }
 
   readAfterUpdate() {
@@ -440,6 +486,7 @@ class LinterPanel {
     } else {
       this.hiddenSeverities.add(severity);
     }
+    this._filterGeneration++;
     this.update();
   }
 
@@ -509,14 +556,13 @@ class LinterPanel {
     );
 
     const data = [];
-    const messages = this._getMessages();
-    const sortedMessages = this._getSortedMessages(messages);
+    const visible = this._visibleMessages();
+    const { start, end } = this._visibleWindow(visible.length);
+    this._window = { start, end };
 
-    // Track visible index for data-index attribute
-    let visibleIndex = 0;
-    for (let i = 0; i < sortedMessages.length; i++) {
-      const message = sortedMessages[i];
-      if (!this.isSeverityVisible(message.severity)) continue;
+    for (let visibleIndex = start; visibleIndex < end; visibleIndex++) {
+      const message = visible[visibleIndex];
+      const i = this._sortedIndexFor(visibleIndex);
 
       // A severity outside the model still gets a row: it is listed with its
       // raw name rather than rendering an empty cell.
@@ -614,7 +660,21 @@ class LinterPanel {
       );
 
       data.push(item);
-      visibleIndex++;
+    }
+
+    // The rows that were not rendered still take up their share of the scroll
+    // height, so the scrollbar and every scrollTop the panel computes match a
+    // list that is all there.
+    const rowHeight = this._rowHeight;
+    const rows = [];
+    if (rowHeight && start > 0) {
+      rows.push(<tr class="linter-spacer" style={`height: ${start * rowHeight}px`} />);
+    }
+    rows.push(...data);
+    if (rowHeight && end < visible.length) {
+      rows.push(
+        <tr class="linter-spacer" style={`height: ${(visible.length - end) * rowHeight}px`} />,
+      );
     }
 
     return (
@@ -625,7 +685,7 @@ class LinterPanel {
       <div class="linter-wrapper" tabIndex="-1">
         <table class="linter-table">
           <thead>{head}</thead>
-          <tbody on={{ click: this._onRowClick }}>{data}</tbody>
+          <tbody on={{ click: this._onRowClick }}>{rows}</tbody>
         </table>
       </div>
     );
@@ -675,32 +735,117 @@ class LinterPanel {
   }
 
   scrollToCurrent() {
-    const currentRow = this.element.querySelector(".linter-row.current");
-    if (!currentRow) return;
+    this._scrollIndexIntoView(this._currentRowIndex);
+  }
 
-    const scrollContainer = this.element.querySelector("tbody");
-    if (!scrollContainer) return;
+  // Brings a row into view by arithmetic rather than by measuring it. The row
+  // may well not be in the DOM — that is the case this exists for, since
+  // scrolling to a row is how it gets rendered in the first place.
+  _scrollIndexIntoView(visibleIndex) {
+    if (visibleIndex < 0) return;
 
-    const rowTop =
-      currentRow.getBoundingClientRect().top -
-      scrollContainer.getBoundingClientRect().top +
-      scrollContainer.scrollTop;
-    const rowBottom = rowTop + currentRow.offsetHeight;
-    const visibleTop = scrollContainer.scrollTop;
-    const visibleBottom = scrollContainer.scrollTop + scrollContainer.clientHeight;
+    const container = this._scrollContainer();
+    const rowHeight = this._rowHeight || this._measureRowHeight();
+    if (!container || !rowHeight) return;
 
-    if (rowTop < visibleTop) {
-      scrollContainer.scrollTop = rowTop;
-    } else if (rowBottom > visibleBottom) {
-      scrollContainer.scrollTop = rowBottom - scrollContainer.clientHeight;
+    const rowTop = visibleIndex * rowHeight;
+    const rowBottom = rowTop + rowHeight;
+
+    if (rowTop < container.scrollTop) {
+      container.scrollTop = rowTop;
+    } else if (rowBottom > container.scrollTop + container.clientHeight) {
+      container.scrollTop = rowBottom - container.clientHeight;
     }
   }
 
   // The visible rows, in render order: sorted, severity-filtered.
   _visibleMessages() {
-    return this._getSortedMessages(this._getMessages()).filter((message) =>
-      this.isSeverityVisible(message.severity),
-    );
+    const sorted = this._getSortedMessages(this._getMessages());
+    if (
+      this._visibleCache &&
+      this._visibleCache.sorted === sorted &&
+      this._visibleCache.generation === this._filterGeneration
+    ) {
+      return this._visibleCache.messages;
+    }
+
+    const messages = sorted.filter((message) => this.isSeverityVisible(message.severity));
+    // The row index the click handler reads is an index into `sorted`, and a
+    // windowed render cannot recount it, so keep the mapping alongside.
+    const indices = new Map();
+    let visibleIndex = 0;
+    for (let i = 0; i < sorted.length; i++) {
+      if (this.isSeverityVisible(sorted[i].severity)) {
+        indices.set(visibleIndex++, i);
+      }
+    }
+
+    this._visibleCache = { sorted, generation: this._filterGeneration, messages, indices };
+    return messages;
+  }
+
+  // The index into the sorted list of the row at this visible index.
+  _sortedIndexFor(visibleIndex) {
+    this._visibleMessages();
+    return this._visibleCache.indices.get(visibleIndex) ?? visibleIndex;
+  }
+
+  // Null during the first render: etch calls `render` before it has an element
+  // to hand back, and the window arithmetic degrades to "render everything".
+  _scrollContainer() {
+    return this.element?.querySelector("tbody") ?? null;
+  }
+
+  // The height of one row, in pixels, cached in `_rowHeight`.
+  //
+  // Measured from a row that is already on screen rather than read from the
+  // custom property that sets it: a custom property's value comes back as the
+  // token that was written, so `2.1em` would parse as two pixels. Every row is
+  // the same height by construction, so any of them will do.
+  _measureRowHeight() {
+    if (this._rowHeight) return this._rowHeight;
+    const row = this.element?.querySelector(".linter-row");
+    const height = row?.offsetHeight ?? 0;
+    if (height > 0) this._rowHeight = height;
+    return this._rowHeight;
+  }
+
+  // Extra rows rendered above and below the viewport, so a scroll of a row or
+  // two costs nothing.
+  static get OVERSCAN() {
+    return 8;
+  }
+
+  // How many rows the very first render puts up. There is no row to measure
+  // yet, so the window cannot be computed — but rendering the whole list to
+  // find that out is the thing being avoided. `update` measures and corrects
+  // as soon as this paints.
+  static get BOOTSTRAP_ROWS() {
+    return 200;
+  }
+
+  // Which slice of the visible list to render.
+  _visibleWindow(total) {
+    const container = this._scrollContainer();
+    const rowHeight = this._measureRowHeight();
+    if (!container || !rowHeight || !container.clientHeight) {
+      return { start: 0, end: Math.min(total, LinterPanel.BOOTSTRAP_ROWS) };
+    }
+
+    const first = Math.floor(container.scrollTop / rowHeight);
+    const count = Math.ceil(container.clientHeight / rowHeight);
+    const start = Math.max(0, first - LinterPanel.OVERSCAN);
+    const end = Math.min(total, first + count + LinterPanel.OVERSCAN);
+    return { start, end };
+  }
+
+  // Scrolling only redraws when it has actually changed which rows belong on
+  // screen. Without this the panel would re-render on every wheel tick.
+  _onScroll() {
+    const total = this._visibleMessages().length;
+    const next = this._visibleWindow(total);
+    if (next.start === this._window.start && next.end === this._window.end) return;
+    this.update();
   }
 
   // The message of the `.current` row, resolved through the row's index —
@@ -798,20 +943,8 @@ class LinterPanel {
   }
 
   scrollToFocused() {
-    const focusedRow = this.element.querySelector(".linter-row.focused");
-    if (!focusedRow) return;
-    const tbody = this.element.querySelector("tbody");
-    if (!tbody) return;
-    const rowTop =
-      focusedRow.getBoundingClientRect().top - tbody.getBoundingClientRect().top + tbody.scrollTop;
-    const rowBottom = rowTop + focusedRow.offsetHeight;
-    const visibleTop = tbody.scrollTop;
-    const visibleBottom = tbody.scrollTop + tbody.clientHeight;
-    if (rowTop < visibleTop) {
-      tbody.scrollTop = rowTop;
-    } else if (rowBottom > visibleBottom) {
-      tbody.scrollTop = rowBottom - tbody.clientHeight;
-    }
+    if (!this._focusedMessage) return;
+    this._scrollIndexIntoView(this._visibleMessages().indexOf(this._focusedMessage));
   }
 }
 

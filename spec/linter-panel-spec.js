@@ -242,6 +242,139 @@ describe("lib/linter-panel", () => {
     expect(row.querySelector(".linter-severity").textContent).toBe("boom");
   });
 
+  // The list renders only the rows the viewport can show. Everything outside
+  // `render` addresses a row by its index in the visible list, so a row that is
+  // not in the DOM still has to be findable, scrollable to and highlightable.
+  describe("with more messages than fit on screen", () => {
+    const TOTAL = 5000;
+
+    const rows = () => Array.from(panel.element.querySelectorAll(".linter-row"));
+    const renderedIndices = () =>
+      rows()
+        .map((row) => parseInt(row.dataset.visibleIndex, 10))
+        .sort((a, b) => a - b);
+    const scrollContainer = () => panel.element.querySelector("tbody");
+
+    let stylesheet;
+
+    beforeEach(async () => {
+      // These specs build the panel directly rather than activating the package,
+      // so its stylesheet is not loaded — and without it the tbody has no
+      // definite height, never scrolls, and the window is the whole list. The
+      // row height and the scroll container are the subject here, so the real
+      // rules have to be in the document.
+      stylesheet = lumine.themes.requireStylesheet(require.resolve("../styles/linter.css"));
+      // The panel is height:100% of whatever holds it, and the spec's wrapper
+      // has no height to inherit.
+      panel.element.style.height = "300px";
+      messages = [];
+      for (let i = 0; i < TOTAL; i++) {
+        messages.push(message("error", i));
+      }
+      normalizeMessages("spec", messages);
+      await panel.update();
+      // The first render measures a row and takes the real window.
+      await panel.update();
+    });
+
+    afterEach(() => {
+      stylesheet.dispose();
+    });
+
+    it("renders a small window rather than a row per message", () => {
+      expect(rows().length).toBeGreaterThan(0);
+      expect(rows().length).toBeLessThan(200);
+    });
+
+    it("keeps the scroll height of the whole list", () => {
+      const rowHeight = panel._rowHeight;
+      expect(rowHeight).toBeGreaterThan(0);
+      // Within one row: the spacers are integer pixels and the header is not
+      // part of the scrolling area.
+      expect(Math.abs(scrollContainer().scrollHeight - TOTAL * rowHeight)).toBeLessThan(rowHeight);
+    });
+
+    it("renders the rows around wherever it has been scrolled to", async () => {
+      const rowHeight = panel._rowHeight;
+      scrollContainer().scrollTop = 2000 * rowHeight;
+      await panel.update();
+
+      const indices = renderedIndices();
+      expect(indices[0]).toBeLessThanOrEqual(2000);
+      expect(indices[indices.length - 1]).toBeGreaterThanOrEqual(2000);
+      expect(indices.length).toBeLessThan(200);
+    });
+
+    it("does not re-render for a scroll that does not change the window", () => {
+      const update = spyOn(panel, "update").and.callThrough();
+      panel._onScroll();
+
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it("re-renders for a scroll that does change the window", () => {
+      const update = spyOn(panel, "update").and.callThrough();
+      scrollContainer().scrollTop = 2000 * panel._rowHeight;
+      panel._onScroll();
+
+      expect(update).toHaveBeenCalled();
+    });
+
+    it("scrolls a row far down the list into view without measuring it", () => {
+      panel._scrollIndexIntoView(4000);
+
+      const expected = 4000 * panel._rowHeight;
+      expect(scrollContainer().scrollTop).toBeGreaterThan(expected - panel._rowHeight * 20);
+    });
+
+    // The point of the window is that a render costs what the viewport costs,
+    // not what the message list costs. Fifty times the messages should not be
+    // fifty times the render.
+    it("renders in time that does not grow with the length of the list", async () => {
+      const time = async (total) => {
+        messages = [];
+        for (let i = 0; i < total; i++) messages.push(message("error", i));
+        normalizeMessages("spec", messages);
+        await panel.update();
+
+        let best = Infinity;
+        for (let run = 0; run < 4; run++) {
+          panel._visibleCache = null;
+          const started = performance.now();
+          await panel.update();
+          best = Math.min(best, performance.now() - started);
+        }
+        return best;
+      };
+
+      const small = await time(100);
+      const large = await time(5000);
+
+      // Sorting and filtering are still linear in the list, so this is not flat
+      // — but a row per message was multiples of this. Generous slack keeps a
+      // loaded runner green while still catching a return to rendering all of it.
+      expect(large).toBeLessThan(small * 8 + 100);
+    });
+
+    it("highlights the cursor's row once it is inside the window", async () => {
+      const editor = await lumine.workspace.open();
+      editor.setText("x\n".repeat(TOTAL));
+      editor.setCursorBufferPosition([2000, 0]);
+      panel.setEditor(editor);
+      panel.setViewMode("file");
+      await panel.update();
+
+      panel._updateCurrentRowHighlight();
+      await panel.update();
+      panel._updateCurrentRowHighlight();
+
+      const current = panel.element.querySelector(".linter-row.current");
+      expect(current).not.toBeNull();
+      expect(parseInt(current.dataset.visibleIndex, 10)).toBe(2000);
+      editor.destroy();
+    });
+  });
+
   // A buffer that has never been saved has no path, so its messages name the
   // buffer. The panel has to label and navigate them without one.
   describe("a message with no file path", () => {
