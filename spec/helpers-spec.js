@@ -106,6 +106,20 @@ describe("lib/helpers", () => {
       );
       expect(await Helpers.isPathIgnored("src/app.js", "**/*.min.{js,css}", false)).toBe(false);
     });
+
+    // The compiled glob is kept between calls, so a changed setting has to take
+    // effect and a stale pattern must not answer for the new one.
+    it("follows the glob changing", async () => {
+      expect(await Helpers.isPathIgnored("src/app.js", "**/*.min.js", false)).toBe(false);
+      expect(await Helpers.isPathIgnored("src/app.js", "**/app.js", false)).toBe(true);
+      expect(await Helpers.isPathIgnored("src/app.js", "**/*.min.js", false)).toBe(false);
+    });
+
+    // picomatch throws on an empty pattern, and clearing the setting is how a
+    // user says they want nothing ignored.
+    it("ignores nothing when the glob is empty", async () => {
+      expect(await Helpers.isPathIgnored("src/vendor/lib.min.js", "", false)).toBe(false);
+    });
   });
 
   describe("flagMessages", () => {
