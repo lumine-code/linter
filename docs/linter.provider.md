@@ -39,18 +39,6 @@ All five fields are required. A linter missing any of them is rejected with a di
 | `grammarScopes` | string[]                | Matched against the scopes under the cursor. **`["*"]` matches every editor** — the scope list is always seeded with `"*"`.   |
 | `lint`          | `(editor) => messages`  | Returns `Message[]`, `null`, `undefined`, or a `Promise` of those.                                                            |
 
-And one optional field:
-
-| Field     | Type                  | Description                                                                                 |
-| --------- | --------------------- | ------------------------------------------------------------------------------------------- |
-| `editors` | `"any"` \| `"center"` | Which editors you want to be asked about. Defaults to `"any"`. Any other value is rejected. |
-
-`"any"` is every editor that exists, which is more than the documents on screen: a package builds editors of its own to render a diff with, or a patch preview, or a commit box in a dock, or the field inside a picker. They are all real editors, most of them carry no grammar and no path, and a provider keyed on a file path never notices because they have none.
-
-`"center"` narrows you to the items open in the workspace centre — the documents somebody opened. A buffer nobody has saved yet counts: it is a pane item, it simply has no path. An item that is not itself an editor counts through the editor its [adapter](linter.adapter.md) names for it, so a notebook still reaches you.
-
-Declare it when your provider is about what a person is writing rather than about a file's contents. `spell-check` does: without it, the command palette's search field and every diff in the Git panel came up underlined in red.
-
 A message. These four are required:
 
 | Field               | Type                                             | Description                                                            |
@@ -110,6 +98,8 @@ module.exports = {
 ```
 
 ## Behavior
+
+Only documents are linted: the pane items open in the workspace, plus any editor a package registered through [`linter.editors`](linter.editors.md). A package builds editors of its own to render a diff, a patch preview or a picker's input field with — they are real editors, most with no grammar and no path, and none of them reaches your `lint`. A buffer nobody has saved yet does: it is a pane item, it simply has no path. An item that is not itself an editor counts through the editor its [adapter](linter.adapter.md) names for it, so a notebook still reaches you.
 
 `lint` is called per editor and raced against a 30-second timeout; a linter that overruns it has its result discarded.
 

@@ -59,6 +59,11 @@
         "1.0.0": "provideLinterRegistry"
       }
     },
+    "linter.editors": {
+      "versions": {
+        "1.0.0": "provideLinterEditors"
+      }
+    },
     "intentions.list": {
       "versions": {
         "1.0.0": "provideIntentionsList"
