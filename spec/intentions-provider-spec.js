@@ -1,4 +1,5 @@
 const { createIntentionsProvider } = require("../lib/intentions-provider");
+const { normalizeMessages } = require("../lib/helpers");
 
 describe("lib/intentions-provider", () => {
   const filePath = process.platform === "win32" ? "C:\\tmp\\example.js" : "/tmp/example.js";
@@ -18,8 +19,11 @@ describe("lib/intentions-provider", () => {
     editor.destroy();
   });
 
+  // Normalized on the way in, as the registry does: nothing reaches a consumer
+  // of linter messages without passing through it, and the path each message
+  // is matched on is one of the things it settles.
   function addMessage(solutions, { file = filePath, position } = {}) {
-    messages.push({
+    const message = {
       severity: "warning",
       excerpt: "Prefer bar over foo",
       location: {
@@ -30,7 +34,9 @@ describe("lib/intentions-provider", () => {
         ],
       },
       solutions,
-    });
+    };
+    normalizeMessages("spec", [message]);
+    messages.push(message);
   }
 
   it("declares the wildcard grammar scope", () => {

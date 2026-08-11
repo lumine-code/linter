@@ -300,7 +300,7 @@ class LinterPanel {
       // Apply same visibility filters as render
       if (!this.isSeverityVisible(message.severity)) continue;
 
-      if (editorPath && normalizePath(message.location.file) !== editorPath) {
+      if (editorPath && message.location.normalizedFile !== editorPath) {
         visibleIndex++;
         continue;
       }
@@ -421,13 +421,9 @@ class LinterPanel {
   _copyDetails() {
     const message = this._contextMessage();
     if (!message) return;
-    lumine.clipboard.write(
-      JSON.stringify(
-        message,
-        (k, v) => (k === "key" || k === "version" || k === "displayRange" ? undefined : v),
-        2,
-      ),
-    );
+    // The linter's own bookkeeping is not part of what a provider reported.
+    const internal = new Set(["key", "version", "displayRange", "normalizedFile"]);
+    lumine.clipboard.write(JSON.stringify(message, (k, v) => (internal.has(k) ? undefined : v), 2));
   }
 
   /**

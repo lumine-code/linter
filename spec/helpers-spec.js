@@ -29,6 +29,43 @@ describe("lib/helpers", () => {
       expect(Helpers.normalizePath(null)).toBeNull();
       expect(Helpers.normalizePath(42)).toBeNull();
     });
+
+    // Every consumer matches on this rather than spelling the path out again:
+    // doing it per message per publish was the largest cost in the update path.
+    it("is settled once, when a message is normalized", () => {
+      const file = windows ? "C:\\Users\\me\\Main.py" : "/home/me/Main.py";
+      const message = {
+        severity: "error",
+        excerpt: "x",
+        location: {
+          file,
+          position: [
+            [0, 0],
+            [0, 1],
+          ],
+        },
+      };
+      Helpers.normalizeMessages("spec", [message]);
+
+      expect(message.location.normalizedFile).toBe(Helpers.normalizePath(file));
+    });
+
+    it("has no path for a message that names a buffer instead", () => {
+      const message = {
+        severity: "error",
+        excerpt: "x",
+        location: {
+          buffer: {},
+          position: [
+            [0, 0],
+            [0, 1],
+          ],
+        },
+      };
+      Helpers.normalizeMessages("spec", [message]);
+
+      expect(message.location.normalizedFile).toBeNull();
+    });
   });
 
   // Rendering one line of markdown costs a whole MarkdownIt instance, its
