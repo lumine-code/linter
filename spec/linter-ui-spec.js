@@ -280,6 +280,71 @@ describe("lib/linter-ui", () => {
     });
   });
 
+  // Inline decorations are skipped for a file too big to be worth decorating.
+  // The verdict used to be taken once, when the editor was first seen, so a file
+  // that grew past the threshold went on being decorated and one that was
+  // generated long and then emptied never got its decorations back.
+  describe("a buffer too large to decorate", () => {
+    // Past the default longLineLength, and appended rather than set so the
+    // markers already on the first row are not invalidated by the edit itself.
+    const longLine = "x".repeat(5000);
+
+    const onRow = (excerpt, row) =>
+      message({
+        excerpt,
+        location: {
+          file: "/spec.js",
+          buffer,
+          position: [
+            [row, 0],
+            [row, 6],
+          ],
+        },
+      });
+
+    it("decorates nothing once the buffer has grown past the threshold", () => {
+      publish([message()]);
+      expect(buffer.linterUI.markerMap.size).toBe(1);
+
+      buffer.append(`${longLine}\n`);
+      publish([onRow("after growing", 1)]);
+
+      expect(buffer.linterUI.isLargeFile).toBe(true);
+      // Including whatever was decorated while it was small enough: nothing
+      // maintains those markers from here.
+      expect(buffer.linterUI.markerMap.size).toBe(0);
+    });
+
+    it("decorates everything it holds once the buffer is small again", () => {
+      buffer.append(`${longLine}\n`);
+      const first = message({ excerpt: "while large" });
+      publish([first]);
+      expect(buffer.linterUI.isLargeFile).toBe(true);
+      expect(buffer.linterUI.markerMap.size).toBe(0);
+
+      buffer.deleteRow(2);
+      const second = onRow("while small", 1);
+      normalizeMessages("spec", [second]);
+      ui.render({ added: [second], removed: [], messages: [first, second] });
+
+      expect(buffer.linterUI.isLargeFile).toBe(false);
+      // Both of them: the one published while it was too large was never
+      // decorated, so it is new here too.
+      expect(buffer.linterUI.markerMap.size).toBe(2);
+    });
+
+    it("measures again when the threshold changes", () => {
+      buffer.append(`${"x".repeat(600)}\n`);
+      publish([message()]);
+      expect(buffer.linterUI.isLargeFile).toBe(false);
+
+      lumine.config.set("linter.longLineLength", 500);
+      publish([onRow("after the setting changed", 1)]);
+
+      expect(buffer.linterUI.isLargeFile).toBe(true);
+    });
+  });
+
   // The buffer set is read twice on every publish. It used to be rebuilt from
   // the workspace each time, which meant flattening every pane container's
   // items; it is kept now, against the number of editors showing each buffer.
