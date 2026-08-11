@@ -31,6 +31,32 @@ describe("lib/helpers", () => {
     });
   });
 
+  // Rendering one line of markdown costs a whole MarkdownIt instance, its
+  // plugins, a front-matter parse and a sanitize pass. The panel asks for one
+  // per row per render, so the answer is kept.
+  describe("renderExcerpt", () => {
+    it("renders the markdown a message excerpt carries", () => {
+      expect(Helpers.renderExcerpt("`F401` unused")).toContain("<code>F401</code>");
+    });
+
+    it("renders one excerpt once", () => {
+      const render = spyOn(lumine.tools.markdown, "render").and.callThrough();
+      const first = Helpers.renderExcerpt("cached excerpt");
+      const second = Helpers.renderExcerpt("cached excerpt");
+
+      expect(second).toBe(first);
+      expect(render.calls.count()).toBe(1);
+    });
+
+    it("still tells two excerpts apart", () => {
+      expect(Helpers.renderExcerpt("one")).not.toBe(Helpers.renderExcerpt("two"));
+    });
+
+    it("renders whatever a provider put in place of a string", () => {
+      expect(() => Helpers.renderExcerpt(undefined)).not.toThrow();
+    });
+  });
+
   describe("isPathIgnored", () => {
     it("treats a missing path as ignored", async () => {
       expect(await Helpers.isPathIgnored(null, "**/*.min.{js,css}", false)).toBe(true);

@@ -7,6 +7,7 @@ const {
   getDescription,
   hasLazyDescription,
   resolveDescription,
+  renderExcerpt,
   normalizePath,
   messageSubject,
   editorForBuffer,
@@ -637,7 +638,7 @@ class LinterPanel {
       // resolved description, an affordance to resolve a lazy one, and the
       // "more info" link for `url`.
       const descriptionContent = [
-        <span class="linter-excerpt" innerHTML={lumine.tools.markdown.render(message.excerpt)} />,
+        <span class="linter-excerpt" innerHTML={renderExcerpt(message.excerpt)} />,
       ];
       const description = getDescription(message);
       if (description) {
