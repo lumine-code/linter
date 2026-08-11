@@ -375,6 +375,96 @@ describe("lib/linter-panel", () => {
     });
   });
 
+  // The panel is built at activation and updated on every publish, whether or
+  // not it was ever opened. It used to answer that with a full bootstrap window
+  // — 200 rows, markdown and all — because a panel nobody can see measures no
+  // row height, which is the same condition as a first render.
+  describe("while nothing can see it", () => {
+    const rowCount = () => panel.element.querySelectorAll(".linter-row").length;
+
+    it("renders no rows once it leaves the document", async () => {
+      await publish(["error", "warning", "info"]);
+      expect(rowCount()).toBe(3);
+
+      panel.element.remove();
+      await panel.update();
+
+      expect(rowCount()).toBe(0);
+    });
+
+    it("renders no rows while an ancestor is hiding it", async () => {
+      await publish(["error", "warning"]);
+      panel.element.style.display = "none";
+      await panel.update();
+      expect(rowCount()).toBe(0);
+
+      panel.element.style.display = "";
+      await panel.update();
+      expect(rowCount()).toBe(2);
+    });
+
+    it("does not sort the list it is not rendering", async () => {
+      await publish(["error", "warning"]);
+      panel.element.remove();
+      const visible = spyOn(panel, "_visibleMessages").and.callThrough();
+
+      await panel.update();
+
+      expect(visible).not.toHaveBeenCalled();
+    });
+
+    // The whole point of the guard above: a panel that renders nothing until it
+    // is seen has to render as soon as it is. Opened as a real pane item rather
+    // than attached by hand, so this covers the path a user takes.
+    it("renders as soon as it is opened in the workspace", async () => {
+      jasmine.attachToDOM(lumine.views.getView(lumine.workspace));
+      panel.element.remove();
+      await publish(["error", "warning"]);
+      expect(rowCount()).toBe(0);
+
+      await panel.toggle();
+
+      expect(panel._isOnScreen()).toBe(true);
+      expect(rowCount()).toBe(2);
+
+      await panel.toggle();
+      expect(panel._isOnScreen()).toBe(false);
+    });
+
+    // A dock closes by shrinking a mask over content that keeps its own size,
+    // so neither the element nor the ResizeObserver on it notices. Without a
+    // subscription to the dock the panel would come back empty.
+    it("follows the dock it lives in being closed and reopened", async () => {
+      jasmine.attachToDOM(lumine.views.getView(lumine.workspace));
+      panel.element.remove();
+      await publish(["error"]);
+      await panel.toggle();
+      expect(rowCount()).toBe(1);
+
+      const dock = lumine.workspace.paneContainerForItem(panel);
+      dock.hide();
+      await conditionPromise(() => rowCount() === 0);
+
+      dock.show();
+      await conditionPromise(() => rowCount() === 1);
+    });
+
+    // Runs on every cursor move as well, so it is the one that costs while
+    // typing rather than the one that costs while linting.
+    it("does not look for the cursor's row", async () => {
+      const editor = await lumine.workspace.open();
+      panel.setEditor(editor);
+      await publish(["error"]);
+      panel.element.remove();
+      const sorted = spyOn(panel, "_getSortedMessages").and.callThrough();
+
+      panel._updateCurrentRowHighlight();
+
+      expect(sorted).not.toHaveBeenCalled();
+      editor.destroy();
+    });
+  });
+
   // A buffer that has never been saved has no path, so its messages name the
   // buffer. The panel has to label and navigate them without one.
   describe("a message with no file path", () => {

@@ -105,6 +105,17 @@ class LinterPanel {
 
     // Register context menu and keyboard navigation commands
     this._disposables = new CompositeDisposable();
+    // The panel renders nothing while it is out of sight, so it has to be told
+    // when it comes back. Neither transition resizes anything the observer
+    // above is watching: a pane shows its active item by lifting a `display`,
+    // and a dock opens by growing a mask over content that never changed size.
+    this._disposables.add(
+      lumine.workspace.onDidChangeActivePaneItem(() => this.update()),
+      ...lumine.workspace
+        .getPaneContainers()
+        .filter((container) => typeof container.onDidChangeVisible === "function")
+        .map((container) => container.onDidChangeVisible(() => this.update())),
+    );
     this._disposables.add(
       lumine.commands.add(this.element, {
         "linter:copy-description": () => this._copyDescription(),
@@ -270,6 +281,10 @@ class LinterPanel {
    */
   _updateCurrentRowHighlight() {
     if (!this.editor || this.pkg.activeItemAdapter || !this.element) return;
+    // Runs on every cursor move as well as after every render, and walks every
+    // message to find the one under the cursor. There is no row to mark while
+    // the panel is off screen, and the next render takes the highlight anyway.
+    if (!this._isOnScreen()) return;
 
     const messages = this._getMessages();
     const sortedMessages = this._getSortedMessages(messages);
@@ -556,7 +571,9 @@ class LinterPanel {
     );
 
     const data = [];
-    const visible = this._visibleMessages();
+    // Sorting and filtering are only worth their O(n log n) when a row can come
+    // of them; an off-screen panel renders an empty tbody.
+    const visible = this._isOnScreen() ? this._visibleMessages() : [];
     const { start, end } = this._visibleWindow(visible.length);
     this._window = { start, end };
 
@@ -710,11 +727,14 @@ class LinterPanel {
   toggle() {
     const refocus = lumine.workspace.getActivePaneItem() != this;
     let prev = document.activeElement;
-    lumine.workspace.toggle(this).then(() => {
+    return lumine.workspace.toggle(this).then(() => {
       if (refocus) {
         prev.focus();
       }
-      this.scrollToCurrent();
+      // Nothing was rendered while the panel was off screen, so this is the
+      // render that has rows. readAfterUpdate takes the current row from it and
+      // scrolls to it, which is what this used to ask for directly.
+      return this.update();
     });
   }
 
@@ -824,8 +844,37 @@ class LinterPanel {
     return 200;
   }
 
+  // Whether anything can see the panel. Three ways it can be out of sight, and
+  // the element only knows about two of them:
+  //
+  // - it is not in the document at all, because the panel has never been opened;
+  // - a pane is hiding it, which is how another tab of the same pane shows;
+  // - the dock holding it is closed — and a closed dock is a zero-sized mask
+  //   over content that keeps its own size, so nothing about the element says so.
+  //
+  // Deliberately not a size test: an unstyled panel is visible and measures
+  // zero, and that is the case BOOTSTRAP_ROWS exists for.
+  _isOnScreen() {
+    if (!this.element?.checkVisibility()) {
+      return false;
+    }
+    // Not a pane item at all — whoever put the element in the document is
+    // showing it. Only a spec or an embedder takes this path.
+    if (!lumine.workspace.paneForItem(this)) {
+      return true;
+    }
+    const container = lumine.workspace.paneContainerForItem(this);
+    return typeof container?.isVisible === "function" ? container.isVisible() : true;
+  }
+
   // Which slice of the visible list to render.
   _visibleWindow(total) {
+    // Nothing on screen wants a row. Every publish used to put up a full
+    // bootstrap window here — 200 rows, markdown and all — for a panel nobody
+    // had opened. The ResizeObserver below brings it back when it gains a box.
+    if (!this._isOnScreen()) {
+      return { start: 0, end: 0 };
+    }
     const container = this._scrollContainer();
     const rowHeight = this._measureRowHeight();
     if (!container || !rowHeight || !container.clientHeight) {
@@ -842,7 +891,7 @@ class LinterPanel {
   // Scrolling only redraws when it has actually changed which rows belong on
   // screen. Without this the panel would re-render on every wheel tick.
   _onScroll() {
-    const total = this._visibleMessages().length;
+    const total = this._isOnScreen() ? this._visibleMessages().length : 0;
     const next = this._visibleWindow(total);
     if (next.start === this._window.start && next.end === this._window.end) return;
     this.update();
@@ -934,11 +983,12 @@ class LinterPanel {
   toggleFocus() {
     if (this.element.contains(document.activeElement)) {
       this._cancelFocus();
-      return;
+      return Promise.resolve();
     }
     // Focus only: the cursor does not exist until the first arrow press.
-    lumine.workspace.open(this, { searchAllPanes: true }).then(() => {
+    return lumine.workspace.open(this, { searchAllPanes: true }).then(() => {
       this.element.focus();
+      return this.update();
     });
   }
 
