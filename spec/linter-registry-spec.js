@@ -53,6 +53,73 @@ describe("lib/linter-registry", () => {
     editor.destroy();
   });
 
+  // A package builds editors of its own to render a diff, a patch preview or a
+  // dock's input field with. `editors: "center"` is how a provider says it only
+  // means the documents somebody opened.
+  describe('a provider declaring editors: "center"', () => {
+    beforeEach(() => {
+      linter.editors = "center";
+    });
+
+    it("is asked about an editor the centre holds", async () => {
+      const editor = await lumine.workspace.open(__filename);
+
+      await registry.lint({ editor, isCenterEditor: () => true });
+
+      expect(linted).toEqual([editor]);
+      editor.destroy();
+    });
+
+    it("is not asked about one the centre does not", async () => {
+      const editor = await lumine.workspace.open(__filename);
+
+      await registry.lint({ editor, isCenterEditor: () => false });
+
+      expect(linted).toEqual([]);
+      editor.destroy();
+    });
+
+    it("asks the question once however many providers narrowed themselves", async () => {
+      const second = { ...linter, name: "second", lint: () => [] };
+      registry.addLinter(second);
+      const editor = await lumine.workspace.open(__filename);
+      const asked = jasmine.createSpy("isCenterEditor").and.returnValue(false);
+
+      await registry.lint({ editor, isCenterEditor: asked });
+
+      expect(asked.calls.count()).toBe(1);
+      editor.destroy();
+    });
+
+    it("is asked when nothing supplied an answer, as a caller from before this could not", async () => {
+      const editor = await lumine.workspace.open(__filename);
+
+      await registry.lint({ editor });
+
+      expect(linted).toEqual([editor]);
+      editor.destroy();
+    });
+  });
+
+  it('leaves a provider declaring editors: "any" alone', async () => {
+    linter.editors = "any";
+    const editor = await lumine.workspace.open(__filename);
+
+    await registry.lint({ editor, isCenterEditor: () => false });
+
+    expect(linted).toEqual([editor]);
+    editor.destroy();
+  });
+
+  it("leaves a provider that declared nothing alone", async () => {
+    const editor = await lumine.workspace.open(__filename);
+
+    await registry.lint({ editor, isCenterEditor: () => false });
+
+    expect(linted).toEqual([editor]);
+    editor.destroy();
+  });
+
   it("still skips a path the ignore glob matches", async () => {
     const editor = await lumine.workspace.open(__filename);
     spyOn(require("../lib/helpers"), "isPathIgnored").and.returnValue(Promise.resolve(true));

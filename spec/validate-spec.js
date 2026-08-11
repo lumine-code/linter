@@ -26,6 +26,20 @@ describe("lib/validate", () => {
       expect(Validate.linter({ ...good, scope: "nope" })).toBe(false);
       expect(lumine.notifications.addWarning).toHaveBeenCalled();
     });
+
+    it("accepts either editor target, and none at all", () => {
+      expect(Validate.linter({ ...good, editors: "any" })).toBe(true);
+      expect(Validate.linter({ ...good, editors: "center" })).toBe(true);
+      expect(Validate.linter(good)).toBe(true);
+      expect("editors" in good).toBe(false);
+      expect(lumine.notifications.addWarning).not.toHaveBeenCalled();
+    });
+
+    it("rejects an editor target it does not know", () => {
+      expect(Validate.linter({ ...good, editors: "dock" })).toBe(false);
+      const [, options] = lumine.notifications.addWarning.calls.mostRecent().args;
+      expect(options.detail).toContain("'any' or 'center'");
+    });
   });
 
   describe("ui", () => {
