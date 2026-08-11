@@ -45,8 +45,14 @@ A message. These four are required:
 | ------------------- | ------------------------------------------------ | ---------------------------------------------------------------------- |
 | `severity`          | `"error"` \| `"warning"` \| `"info"` \| `"hint"` | Anything else is rejected. `"hint"` is the quiet tier.                 |
 | `excerpt`           | string                                           | The one-line message text.                                             |
-| `location.file`     | string                                           | Absolute path.                                                         |
+| `location.file`     | string                                           | Absolute path. May be replaced by `location.buffer` — see below.       |
 | `location.position` | Range-compatible                                 | `[[row, column], [row, column]]` or a `Range`. Must not contain `NaN`. |
+
+| Field             | Type         | Description                                                                                  |
+| ----------------- | ------------ | -------------------------------------------------------------------------------------------- |
+| `location.buffer` | `TextBuffer` | The buffer the message is about, **instead of** `location.file` when the buffer has no path. |
+
+A buffer that has never been saved has no path, so a message about one names the buffer. Exactly one of `file` and `buffer` is required; a location with neither is rejected. Everything works the same either way — markers, hover, code actions, `linter:next-error` — with two differences the panel cannot avoid: such a row is labelled `untitled` rather than a path, and navigating to it from project view reveals it in an editor already showing that buffer instead of opening one. Once nothing is showing the buffer, the row does nothing, the same as a row for a file that has since been deleted.
 
 And these are optional:
 
@@ -101,7 +107,7 @@ Responses are ordered. A result that arrives after a newer request for the same 
 
 A `"project"`-scoped linter's results replace the entire project message set on every run, so it must return everything it knows about each time.
 
-Files are skipped before `lint` is called when they match the `linter.ignoreGlob` setting, when `linter.ignoreVCS` is on and the repository ignores them, or when the editor is a preview tab and `linter.lintPreviewTabs` is off. A user can also disable an individual provider by `name`, which skips it without unregistering it.
+Files are skipped before `lint` is called when they match the `linter.ignoreGlob` setting, when `linter.ignoreVCS` is on and the repository ignores them, or when the editor is a preview tab and `linter.lintPreviewTabs` is off. Neither of the first two questions can be asked about a buffer with no path, so such a buffer is linted: nothing has decided to ignore it, it is simply not a file yet. A user can also disable an individual provider by `name`, which skips it without unregistering it.
 
 Message shape is validated on every run in dev mode, and always when the return value is not an array; in a release build a plausible array is trusted. Develop with `--dev` if you want the diagnostics.
 

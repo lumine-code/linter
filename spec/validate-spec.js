@@ -85,6 +85,30 @@ describe("lib/validate", () => {
       expect(Validate.messages("my-linter", [{ ...good, severity: "boom" }])).toBe(false);
     });
 
+    // A buffer that has never been saved has no path, so a message about one
+    // names the buffer instead. One of the two is required; neither is not.
+    it("accepts a message located by buffer instead of by file", () => {
+      const buffer = { id: 7 };
+      const message = { ...good, location: { buffer, position: good.location.position } };
+
+      expect(Validate.messages("my-linter", [message])).toBe(true);
+      expect(lumine.notifications.addWarning).not.toHaveBeenCalled();
+    });
+
+    it("rejects a message located by neither", () => {
+      const message = { ...good, location: { position: good.location.position } };
+
+      expect(Validate.messages("my-linter", [message])).toBe(false);
+      const [, options] = lumine.notifications.addWarning.calls.mostRecent().args;
+      expect(options.detail).toContain("file or a buffer");
+    });
+
+    it("still rejects a message with no position", () => {
+      const message = { ...good, location: { buffer: { id: 7 } } };
+
+      expect(Validate.messages("my-linter", [message])).toBe(false);
+    });
+
     it("accepts every severity of the model", () => {
       for (const severity of ["error", "warning", "info", "hint"]) {
         expect(Validate.messages("my-linter", [{ ...good, severity }])).toBe(true);

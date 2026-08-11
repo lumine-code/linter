@@ -170,7 +170,7 @@ describe("lib/intentions-provider", () => {
     expect(intentions).toEqual([]);
   });
 
-  it("returns nothing for editors without a file path", async () => {
+  it("does not offer a file's messages in an editor that has no path", async () => {
     const pathless = lumine.workspace.buildTextEditor();
     addMessage([
       {
@@ -185,5 +185,73 @@ describe("lib/intentions-provider", () => {
       [],
     );
     pathless.destroy();
+  });
+
+  // A buffer that has never been saved has no path for a message to name, so
+  // its messages name the buffer and are matched on that instead.
+  it("offers a buffer-located message in the editor holding that buffer", async () => {
+    const pathless = lumine.workspace.buildTextEditor();
+    pathless.setText("const foo = 1;\n");
+    messages.push({
+      severity: "warning",
+      excerpt: "Prefer bar over foo",
+      location: {
+        buffer: pathless.getBuffer(),
+        position: [
+          [0, 6],
+          [0, 9],
+        ],
+      },
+      solutions: [
+        {
+          title: "Rename to bar",
+          position: [
+            [0, 6],
+            [0, 9],
+          ],
+          replaceWith: "bar",
+        },
+      ],
+    });
+
+    const intentions = await provider.getIntentions({
+      textEditor: pathless,
+      bufferPosition: [0, 7],
+    });
+    expect(intentions.length).toBe(1);
+
+    await intentions[0].selected();
+    expect(pathless.getText()).toBe("const bar = 1;\n");
+    pathless.destroy();
+  });
+
+  it("does not offer another buffer's messages", async () => {
+    const one = lumine.workspace.buildTextEditor();
+    const two = lumine.workspace.buildTextEditor();
+    two.setText("const foo = 1;\n");
+    messages.push({
+      severity: "warning",
+      excerpt: "Prefer bar over foo",
+      location: {
+        buffer: one.getBuffer(),
+        position: [
+          [0, 6],
+          [0, 9],
+        ],
+      },
+      solutions: [
+        {
+          position: [
+            [0, 6],
+            [0, 9],
+          ],
+          replaceWith: "bar",
+        },
+      ],
+    });
+
+    expect(await provider.getIntentions({ textEditor: two, bufferPosition: [0, 7] })).toEqual([]);
+    one.destroy();
+    two.destroy();
   });
 });

@@ -8,6 +8,8 @@ const {
   hasLazyDescription,
   resolveDescription,
   normalizePath,
+  messageSubject,
+  editorForBuffer,
 } = require("./helpers");
 
 // Precomputed per-severity cell class, to avoid rebuilding it in the render loop
@@ -198,12 +200,7 @@ class LinterPanel {
     }
 
     if (this.viewMode === "project") {
-      // In project mode, open the file and navigate to position
-      lumine.workspace.open(message.location.file, {
-        initialLine: message.location.position.start.row,
-        initialColumn: message.location.position.start.column,
-        pending: true,
-      });
+      this._openMessage(message);
     } else {
       this.pkg.revealMessage(message);
     }
@@ -532,9 +529,10 @@ class LinterPanel {
       const cell = message.location.cell;
       if (isProject) {
         // Project mode: show abbreviated file path + line:col
-        const abbrev = this._abbreviatePath(message.location.file);
+        const subject = messageSubject(message);
+        const abbrev = this._abbreviatePath(subject);
         positionContent.push(
-          <span class="linter-file-path" title={message.location.file}>
+          <span class="linter-file-path" title={subject}>
             {abbrev}
           </span>,
         );
@@ -754,14 +752,32 @@ class LinterPanel {
     if (!message) return;
     this._setFocusedMessage(null);
     if (this.viewMode === "project") {
-      lumine.workspace.open(message.location.file, {
-        initialLine: message.location.position.start.row,
-        initialColumn: message.location.position.start.column,
-        pending: true,
-      });
+      this._openMessage(message);
     } else {
       this.pkg.revealMessage(message);
     }
+  }
+
+  // Project mode navigates to a message that may belong to any file, so it opens
+  // one. A message located by buffer has no path to open: it can only be
+  // revealed in an editor that is still showing that buffer.
+  _openMessage(message) {
+    const buffer = message.location.buffer;
+    if (buffer) {
+      const editor = editorForBuffer(buffer);
+      if (!editor) return;
+      const pane = lumine.workspace.paneForItem(editor);
+      if (pane) pane.activateItem(editor);
+      editor.setCursorBufferPosition(message.location.position.start);
+      editor.element.focus();
+      return;
+    }
+
+    lumine.workspace.open(message.location.file, {
+      initialLine: message.location.position.start.row,
+      initialColumn: message.location.position.start.column,
+      pending: true,
+    });
   }
 
   _cancelFocus() {
@@ -801,8 +817,10 @@ class LinterPanel {
 
 function compareMessagePosition(a, b, byFile) {
   if (byFile) {
-    const fileA = a.location.file || "";
-    const fileB = b.location.file || "";
+    // Grouped by whatever the row is labelled with, so pathless messages sort
+    // together rather than all landing at the front under an empty string.
+    const fileA = messageSubject(a);
+    const fileB = messageSubject(b);
     if (fileA < fileB) return -1;
     if (fileA > fileB) return 1;
   }

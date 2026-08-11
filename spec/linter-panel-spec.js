@@ -31,7 +31,12 @@ describe("lib/linter-panel", () => {
     messages = [];
     panel = new LinterPanel({
       getCurrentMessages: () => messages,
-      allMessages: [],
+      // Project mode reads this rather than getCurrentMessages, and switching
+      // mode refreshes the status-bar tile.
+      get allMessages() {
+        return messages;
+      },
+      status: { update: () => {} },
       isLintingDisabledForEditor: () => false,
       revealMessage: () => {},
     });
@@ -235,5 +240,69 @@ describe("lib/linter-panel", () => {
     const row = panel.element.querySelector(".linter-row");
     expect(row.className).toBe("linter-row unknown");
     expect(row.querySelector(".linter-severity").textContent).toBe("boom");
+  });
+
+  // A buffer that has never been saved has no path, so its messages name the
+  // buffer. The panel has to label and navigate them without one.
+  describe("a message with no file path", () => {
+    let editor;
+
+    const publishBufferMessage = async () => {
+      messages = [
+        {
+          severity: "error",
+          excerpt: "no such word",
+          linterName: "spec",
+          location: {
+            buffer: editor.getBuffer(),
+            position: [
+              [0, 6],
+              [0, 9],
+            ],
+          },
+        },
+      ];
+      normalizeMessages("spec", messages);
+      await panel.update();
+    };
+
+    beforeEach(async () => {
+      editor = await lumine.workspace.open();
+      editor.setText("const foo = 1;\n");
+      panel.setViewMode("project");
+      await panel.update();
+    });
+
+    afterEach(() => {
+      editor.destroy();
+    });
+
+    it("labels the row untitled rather than leaving the cell blank", async () => {
+      await publishBufferMessage();
+
+      const row = panel.element.querySelector(".linter-row");
+      expect(row.querySelector(".linter-file-path").textContent).toBe("untitled");
+    });
+
+    it("reveals it in the editor holding the buffer instead of opening a path", async () => {
+      const open = spyOn(lumine.workspace, "open").and.callThrough();
+      await publishBufferMessage();
+
+      panel.element.querySelector(".linter-row").click();
+
+      expect(open).not.toHaveBeenCalled();
+      expect(editor.getCursorBufferPosition()).toEqual([0, 6]);
+    });
+
+    it("does nothing when no editor is showing the buffer any more", async () => {
+      await publishBufferMessage();
+      const orphan = { getPath: () => null };
+      messages[0].location.buffer = orphan;
+      const open = spyOn(lumine.workspace, "open").and.callThrough();
+
+      panel.element.querySelector(".linter-row").click();
+
+      expect(open).not.toHaveBeenCalled();
+    });
   });
 });
