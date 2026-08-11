@@ -55,6 +55,12 @@ describe("linter package assets", () => {
     expect(css).toMatch(/\.linter-text\s*\{[^}]*text-decoration-thickness:\s*1px;/);
   });
 
+  it("reserves an invisible status indicator in file mode", () => {
+    const css = read("styles/linter.css");
+    expect(css).toMatch(/\.linter-status\s*\{[^}]*border-left:\s*2px solid transparent;/);
+    expect(css).toMatch(/&\.project-mode\s*\{[^}]*border-color:\s*var\(--text-color-highlight\);/);
+  });
+
   it("is named `linter`, scopes its dependencies, and drops lodash", () => {
     const pkg = JSON.parse(read("package.json"));
     expect(pkg.name).toBe("linter");

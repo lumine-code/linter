@@ -83,7 +83,10 @@
 }
 
 .linter-status {
-  border-left: 2px solid var(--tool-panel-background-color);
+  /* Keep the project-mode indicator's space reserved without trying to hide
+   * it by matching a surface colour. Status-bar tiles may be translucent, so
+   * a theme can legitimately paint a different colour underneath. */
+  border-left: 2px solid transparent;
   padding-left: 0.4em;
   transition: border-color 0.2s ease;
 
