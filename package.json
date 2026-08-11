@@ -11,7 +11,7 @@
     "styles"
   ],
   "version": "1.1.0",
-  "description": "Linting infrastructure with an integrated UI.",
+  "description": "Linting infrastructure with inline markers and hovers.",
   "repository": "https://github.com/lumine-code/linter",
   "bugs": {
     "url": "https://github.com/lumine-code/linter/issues"
@@ -28,9 +28,6 @@
   "engines": {
     "lumine": "^1.0.0"
   },
-  "backgroundTips": [
-    "{% if keys['linter:toggle-panel'] %}You can read every lint message in the project in one sortable panel with {{ 'linter:toggle-panel' | keystroke }}{% else %}You can read every lint message in the project in one sortable panel.{% endif %}"
-  ],
   "consumedServices": {
     "linter.provider": {
       "versions": {
@@ -40,11 +37,6 @@
     "linter.ui": {
       "versions": {
         "^1.0.0": "consumeLinterUI"
-      }
-    },
-    "status-bar": {
-      "versions": {
-        "^1.0.0": "consumeStatusBar"
       }
     },
     "linter.adapter": {
@@ -84,7 +76,6 @@
     "core:loaded-shell-environment"
   ],
   "dependencies": {
-    "@lumine-code/etch": "github:lumine-code/etch#ad65d4e2a81aa70839069309fa532635bc007b7e",
     "picomatch": "^4.0.5"
   },
   "devDependencies": {
@@ -139,26 +130,6 @@
       },
       "default": []
     },
-    "defaultSortMethod": {
-      "title": "Default Sort Method",
-      "description": "Choose the default sorting method for linter messages",
-      "type": "string",
-      "enum": [
-        {
-          "value": "position",
-          "description": "Sort by line number only"
-        },
-        {
-          "value": "severity",
-          "description": "Sort by severity (error, warning, info, hint) then line number"
-        },
-        {
-          "value": "provider",
-          "description": "Sort by provider name alphabetically"
-        }
-      ],
-      "default": "position"
-    },
     "showHoverTooltip": {
       "title": "Show Hover Tooltip",
       "description": "Show linter messages in the tooltip of the `hover` package when the pointer rests on an issue or on its gutter dot. Requires that package.",
@@ -167,7 +138,7 @@
     },
     "largeFileLineCount": {
       "title": "Large File Line Count",
-      "description": "Skip inline decorations for files with more lines than this (panel still works)",
+      "description": "Skip inline decorations for files with more lines than this",
       "type": "integer",
       "minimum": 1000,
       "default": 20000
@@ -178,12 +149,6 @@
       "type": "integer",
       "minimum": 500,
       "default": 4000
-    },
-    "statusMode": {
-      "title": "Status-bar item always visible",
-      "description": "When disabled, the status-bar item is hidden while there are no messages",
-      "type": "boolean",
-      "default": true
     },
     "editorScrollZone": {
       "title": "Editor scroll zone",

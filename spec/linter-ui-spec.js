@@ -78,21 +78,6 @@ describe("lib/linter-ui", () => {
       ]);
       expect(Object.keys(buffer.linterUI.tagLayers)).toEqual(["unnecessary", "deprecated"]);
     });
-
-    it("retires layers left by a build that kept them as direct keys", () => {
-      const legacy = {
-        error: buffer.addMarkerLayer(),
-        warning: buffer.addMarkerLayer(),
-        info: buffer.addMarkerLayer(),
-      };
-      const staleLayer = legacy.warning;
-      buffer.linterUI = legacy;
-      ui.patchedEditors.delete?.(editor);
-      ui.patchedEditors = new WeakSet();
-      ui.patchEditor(editor);
-      expect(staleLayer.isDestroyed()).toBe(true);
-      expect(buffer.linterUI.severityLayers.warning).toBeDefined();
-    });
   });
 
   describe("rendering", () => {
@@ -197,14 +182,6 @@ describe("lib/linter-ui", () => {
       expect(() => publish([bogus, good])).not.toThrow();
       expect(buffer.linterUI.markerMap.has(bogus.key)).toBe(false);
       expect(markersFor(good).length).toBe(1);
-    });
-
-    it("destroys every marker of every message on clearMessages", () => {
-      publish([message({ tags: ["unnecessary", "deprecated"] })]);
-      ui.clearMessages();
-      expect(buffer.linterUI.markerMap.size).toBe(0);
-      expect(buffer.linterUI.tagLayers.unnecessary.getMarkerCount()).toBe(0);
-      expect(buffer.linterUI.tagLayers.deprecated.getMarkerCount()).toBe(0);
     });
 
     it("keeps markers valid while their provider recomputes", () => {

@@ -18,7 +18,6 @@
             { "label": "Lint", "command": "linter:lint" },
             { "label": "Debug", "command": "linter:debug" },
             { "type": "separator" },
-            { "label": "Toggle Panel", "command": "linter:toggle-panel" },
             { "label": "Next Issue", "command": "linter:next" },
             { "label": "Previous Issue", "command": "linter:previous" },
             { "label": "Inspect Issue", "command": "linter:inspect" },

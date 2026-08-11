@@ -1,22 +1,18 @@
 # linter
 
-Linting infrastructure with an integrated UI.
+Linting infrastructure with inline markers and hovers.
 
-Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](https://github.com/steelbrain/linter-ui-default).
+Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](https://github.com/steelbrain/linter-ui-default). The panel and the status-bar tile live in [linter-panel](https://github.com/lumine-code/linter-panel).
 
 ## Features
 
-- **Unified package**: combines linter core functionality with UI in a single package.
-- **Status bar integration**: shows a count per severity in the status bar, with mouse shortcuts for toggling the panel and stepping through messages.
-- **Linter panel**: sortable table view of all linter messages with filtering, and keyboard navigation when focused. Each row carries the provider's long form beside the excerpt, such as a rule code.
+- **The hub**: collects diagnostics from every linter provider, from packages that push their own, and from language servers, and holds one message set for the project.
+- **Editor highlighting**: underline and gutter decorations for linted ranges, on two independent axes — severity, and the LSP tags a message carries.
 - **Hover messages**: shows the messages under the pointer, or the whole line's when the pointer rests on the gutter dot, through the `hover` package's tooltip.
-- **Editor highlighting**: underline and gutter decorations for linted ranges.
-- **Multiple sort methods**: sort by severity, position, or provider. Cell index is used as a primary sort key for notebook messages.
-- **Linter management**: enable or disable individual linter providers.
-- **Jupyter notebook support**: works with `.ipynb` files through the `linter.adapter` service. Messages are mapped to individual cells and the panel shows `[cell]:line:col` position.
-- **Scrollmap markers**: exposes linter markers to scrollbar-overview packages through the `linter.ui` service.
-- **Reference links**: clickable references in messages open related files, and a "more info" link opens the provider's documentation in the browser.
-- **Markdown rendering**: message excerpts support markdown formatting in the hover tooltip and the panel.
+- **Quick fixes**: exposes the solutions a message carries as code actions at the cursor.
+- **Linter management**: enable or disable individual linter providers, or linting for one file.
+- **Jupyter notebook support**: works with `.ipynb` files through the `linter.adapter` service, mapping messages to individual cells.
+- **Any number of front ends**: hands every message change, and a handle to ask about them, to each `linter.ui` package — the panel, a scrollbar overview, a status indicator.
 - **MCP tool**: provides a read-only `GetLinterMessages` tool through the `mcp.tools` service.
 
 ## Installation
@@ -27,12 +23,8 @@ To install `linter` search for _linter_ in the Install pane of the Lumine settin
 
 Commands available in `lumine-workspace`:
 
-- `linter:toggle-focus`: focus the panel (or return focus to the editor if already focused), opening the panel if needed,
-- `linter:toggle-panel`: toggle the linter panel visibility,
 - `linter:toggle-linter`: toggle a linter provider on/off,
 - `linter:toggle-current-file`: toggle linting for the current file,
-- `linter:file-mode`: show only the messages of the active editor in the panel,
-- `linter:project-mode`: show the messages of the whole project in the panel,
 - `linter:lint`: manually trigger linting on the current file,
 - `linter:debug`: show debug information about active linters,
 - `linter:state`: toggle linting for the current file (legacy alias),
@@ -81,22 +73,18 @@ Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
 - **mcp.tools** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
 - **hover.provider** (`1.0.0`): provided to show the messages under the pointer in the `hover` package's tooltip, ahead of any documentation source.
 - **[linter.provider](docs/linter.provider.md)** (`^1.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
-- **[linter.ui](docs/linter.ui.md)** (`^1.0.0`): consumed to hand messages to external UI providers such as scrollbar-overview packages.
+- **[linter.ui](docs/linter.ui.md)** (`^1.0.0`): consumed to hand messages, and a handle to ask about them, to whatever displays them — the `linter-panel` package, a scrollbar overview.
 - **[linter.adapter](docs/linter.adapter.md)** (`^1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
-- **status-bar** (`^1.0.0`): consumed to display the message count per severity.
 
 ## Usage
 
 ### The `GetLinterMessages` MCP tool
 
-`linter` publishes one tool through `mcp.tools`, so a connected MCP host can read the diagnostics the panel holds. It is read-only.
+`linter` publishes one tool through `mcp.tools`, so a connected MCP host can read the diagnostics it holds. It is read-only.
 
-With no arguments the tool follows the current linter panel view mode:
+With no arguments the tool returns the messages of the active editor (`mode` is `file`). Pass `scope: "project"` for every message the project holds.
 
-- `file`: returns messages for the active editor,
-- `project`: returns all known messages across the project.
-
-The tool also accepts optional filters. When any of them is provided, the result is scoped from all known messages across the project, independent of UI focus or panel view mode (`mode` is `filter`). This lets callers target a file that is not the focused tab, or even a file that was never opened:
+The tool also accepts optional filters. When any of them is provided, the result is scoped from all known messages across the project whatever the scope says (`mode` is `filter`). This lets callers target a file that is not the focused tab, or even a file that was never opened:
 
 - `filePath`: only messages for this file. Matching mirrors the filesystem: on Windows it is case-insensitive and treats `/` and `\` as equal, on POSIX it is exact.
 - `severity`: only messages with this severity (`error`, `warning`, `info` or `hint`).

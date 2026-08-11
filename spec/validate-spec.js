@@ -41,9 +41,20 @@ describe("lib/validate", () => {
       expect(Validate.ui(good)).toBe(true);
     });
 
-    it("rejects a UI missing render", () => {
-      const { render: _render, ...withoutRender } = good;
-      expect(Validate.ui(withoutRender)).toBe(false);
+    // Everything but the name is optional: a scrollbar overview wants `render`
+    // and nothing else, and used to have to write three empty stubs to say so.
+    it("accepts a UI that implements only what it uses", () => {
+      expect(Validate.ui({ name: "sparse", render() {} })).toBe(true);
+      expect(Validate.ui({ name: "silent" })).toBe(true);
+    });
+
+    it("rejects a member that is present but not callable", () => {
+      expect(Validate.ui({ name: "broken", render: "soon" })).toBe(false);
+      expect(Validate.ui({ name: "broken", attach: {} })).toBe(false);
+    });
+
+    it("still requires a name to put in a notification", () => {
+      expect(Validate.ui({ render() {} })).toBe(false);
     });
   });
 

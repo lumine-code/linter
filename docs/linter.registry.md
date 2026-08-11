@@ -1,6 +1,6 @@
 # linter.registry
 
-A function that registers an "indie" linter: a package pushes messages into the linter panel whenever it likes, instead of waiting to be asked.
+A function that registers an "indie" linter: a package pushes messages to the linter whenever it likes, instead of waiting to be asked.
 
 |             |                                                           |
 | ----------- | --------------------------------------------------------- |
@@ -9,7 +9,7 @@ A function that registers an "indie" linter: a package pushes messages into the 
 | Consumed by | `consumeLinterRegistry(registerIndie)`                    |
 | Owner       | [`linter`](https://github.com/lumine-code/linter)         |
 
-Use this when you already have the diagnostics — a compiler you shell out to, a formatter, a language server — and only need somewhere to display them. When the panel should ask _you_ for messages about a specific editor, implement [`linter.provider`](linter.provider.md) instead.
+Use this when you already have the diagnostics — a compiler you shell out to, a formatter, a language server — and only need somewhere to display them. When the linter should ask _you_ for messages about a specific editor, implement [`linter.provider`](linter.provider.md) instead.
 
 ## Registration
 
@@ -25,7 +25,7 @@ In your `package.json`:
 }
 ```
 
-The service **is** a function, not an object with methods. Call it once per logical linter you want to appear in the panel; it returns a delegate you keep for the lifetime of your package.
+The service **is** a function, not an object with methods. Call it once per logical linter you want reported under its own name; it returns a delegate you keep for the lifetime of your package.
 
 ## Contract
 
@@ -104,7 +104,7 @@ Calls on a disposed delegate are ignored rather than throwing, so a late callbac
 
 ## Teardown
 
-Call `dispose()` on the delegate from the `Disposable` you return from `consumeLinterRegistry`. That removes its messages from the panel and fires `onDidDestroy`. Disposing the delegate does not clear your own reference — drop it yourself, as above.
+Call `dispose()` on the delegate from the `Disposable` you return from `consumeLinterRegistry`. That removes its messages and fires `onDidDestroy`. Disposing the delegate does not clear your own reference — drop it yourself, as above.
 
 ## Versioning
 

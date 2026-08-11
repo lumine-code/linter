@@ -33,7 +33,7 @@ All five fields are required. A linter missing any of them is rejected with a di
 
 | Field           | Type                    | Description                                                                                                                   |
 | --------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `name`          | string                  | Shown in the panel and copied into each message's `linterName`. Also the key a user disables the provider by.                 |
+| `name`          | string                  | Copied into each message's `linterName`, and shown wherever one is listed. Also the key a user disables the provider by.      |
 | `scope`         | `"file"` \| `"project"` | Any other value is rejected. `"file"` scopes results to the linted buffer; `"project"` replaces the whole project result set. |
 | `lintsOnChange` | boolean                 | Required even when `false`. `false` means the linter runs on open and save only.                                              |
 | `grammarScopes` | string[]                | Matched against the scopes under the cursor. **`["*"]` matches every editor** — the scope list is always seeded with `"*"`.   |
@@ -52,7 +52,7 @@ A message. These four are required:
 | ----------------- | ------------ | -------------------------------------------------------------------------------------------- |
 | `location.buffer` | `TextBuffer` | The buffer the message is about, **instead of** `location.file` when the buffer has no path. |
 
-A buffer that has never been saved has no path, so a message about one names the buffer. Exactly one of `file` and `buffer` is required; a location with neither is rejected. Everything works the same either way — markers, hover, code actions, `linter:next-error` — with two differences the panel cannot avoid: such a row is labelled `untitled` rather than a path, and navigating to it from project view reveals it in an editor already showing that buffer instead of opening one. Once nothing is showing the buffer, the row does nothing, the same as a row for a file that has since been deleted.
+A buffer that has never been saved has no path, so a message about one names the buffer. Exactly one of `file` and `buffer` is required; a location with neither is rejected. Everything works the same either way — markers, hover, code actions, `linter:next` — with two differences a UI listing it cannot avoid: it has no path to label the entry with, and navigating to it can only reveal it in an editor already showing that buffer rather than opening one. Once nothing is showing the buffer, there is nowhere to go, the same as for a file that has since been deleted.
 
 And these are optional:
 
@@ -62,8 +62,8 @@ And these are optional:
 | `description` | string \| `() => string \| Promise<string>` | Long form, shown beside the excerpt. See below.                       |
 | `solutions`   | array \| `Promise<array>`                   | Quick fixes. Also surfaced as code actions through `intentions.list`. |
 | `reference`   | `{ file: string, position: Point }`         | A second location, such as a prior declaration. Also `NaN`-checked.   |
-| `url`         | string                                      | Rendered by the panel as a "more info" link, opened in the browser.   |
-| `icon`        | string                                      | Icon name for the panel row.                                          |
+| `url`         | string                                      | A link to the rule's documentation, opened in the browser.            |
+| `icon`        | string                                      | Icon name, for a UI that shows one per message.                       |
 | `linterName`  | string                                      | Overrides `name` for this message.                                    |
 
 ## Minimal example
@@ -113,9 +113,9 @@ Files are skipped before `lint` is called when they match the `linter.ignoreGlob
 
 Message shape is validated on every run in dev mode, and always when the return value is not an array; in a release build a plausible array is trusted. Develop with `--dev` if you want the diagnostics.
 
-The panel normalizes what you return **in place**: positions become `Range` and `Point` instances, `linterName` is filled in from `name`, `tags` is reduced to the known values in a fixed order (and dropped when none survive), and a stable key is attached. Do not assume the objects you returned stay untouched, and do not hand out shared or frozen objects.
+The hub normalizes what you return **in place**: positions become `Range` and `Point` instances, `linterName` is filled in from `name`, `tags` is reduced to the known values in a fixed order (and dropped when none survive), and a stable key is attached. Do not assume the objects you returned stay untouched, and do not hand out shared or frozen objects.
 
-`description` is the message's long form and is rendered as plain text: after the excerpt in the panel row, under it in the hover tooltip, and in the `GetLinterMessages` MCP tool. It is where a rule code (`Ruff: F401`) or a set of related locations belongs — the excerpt stays the one-line summary. The string form is shown as soon as the message arrives. The function form is called at most once per message, when the panel row's "details" link is clicked or the hover tooltip opens, and its result is cached until the next lint run replaces the message; a function that throws costs the long form, not the message. Only the string form reaches the MCP tool, which never runs provider code.
+`description` is the message's long form and is rendered as plain text: under the excerpt in the hover tooltip, and in the `GetLinterMessages` MCP tool. It is where a rule code (`Ruff: F401`) or a set of related locations belongs — the excerpt stays the one-line summary. The string form is shown as soon as the message arrives. The function form is called at most once per message, when a reader asks for the long form — the hover tooltip opening, a UI's "details" affordance — and its result is cached until the next lint run replaces the message; a function that throws costs the long form, not the message. Only the string form reaches the MCP tool, which never runs provider code.
 
 The severity and tag vocabularies follow the LSP diagnostic model — `severity` mirrors `DiagnosticSeverity` (`error` 1, `warning` 2, `info` 3, `hint` 4) and `tags` mirrors `DiagnosticTag` — and both sets are open-ended. A consumer must supply its own default for a value it does not recognize rather than assume a fixed set of keys, and should treat an unknown severity as the lowest precedence.
 

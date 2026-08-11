@@ -48,7 +48,7 @@ module.exports = {
 
 ## Behavior
 
-A registered editor behaves exactly like a pane item: providers whose `grammarScopes` match run on open, save and change, its messages appear in the panel and on its markers, and a buffer with no path is carried as [`location.buffer`](linter.provider.md). Registering an editor twice is a no-op, and registering one that is also a pane item changes nothing — it was already linted.
+A registered editor behaves exactly like a pane item: providers whose `grammarScopes` match run on open, save and change, its messages appear on its markers and in every registered UI, and a buffer with no path is carried as [`location.buffer`](linter.provider.md). Registering an editor twice is a no-op, and registering one that is also a pane item changes nothing — it was already linted.
 
 Register only an editor whose content a person writes. An editor rendering derived content — a diff, a preview — gains nothing from diagnostics, and keeping it out is the default this service exists to preserve.
 

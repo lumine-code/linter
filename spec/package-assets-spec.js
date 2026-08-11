@@ -14,9 +14,9 @@ const parseJsonc = (rel) =>
       .replace(/,(\s*[}\]])/g, "$1"),
   );
 
-// Guards for the linter-bundle -> linter rebrand and the CSON -> JSON /
-// Less -> CSS modernization. The command prefix, config namespace, and package
-// name all move to `linter`; the shared service names stay the same.
+// Guards for the CSON -> JSON / Less -> CSS modernization, and for the boundary
+// the front end was extracted across: what the hub ships is the markers, the
+// hover and the services, and nothing that draws a panel.
 describe("linter package assets", () => {
   it("ships keymaps and menus as JSONC, not CSON or plain JSON", () => {
     expect(exists("keymaps/linter.jsonc")).toBe(true);
@@ -29,14 +29,24 @@ describe("linter package assets", () => {
 
   it("uses the linter: command prefix in the keymap and menu", () => {
     const keymap = parseJsonc("keymaps/linter.jsonc");
-    expect(keymap["lumine-workspace"]["alt-l"]).toBe("linter:toggle-focus");
+    expect(keymap["lumine-text-editor:not([mini])"]["alt-'"]).toBe("linter:next");
 
     const menu = parseJsonc("menus/linter.jsonc");
     const flat = JSON.stringify(menu);
     expect(flat).toContain("linter:lint");
-    expect(read("menus/linter.jsonc")).not.toContain("linter-bundle:");
     // Menu entries must use the singular `command` key.
     expect(flat).not.toContain('"commands"');
+  });
+
+  // The front end is `linter-panel`'s. Its commands, its reveal-tier key and
+  // its root class must not be named from here.
+  it("names nothing that belongs to the panel", () => {
+    for (const file of ["keymaps/linter.jsonc", "menus/linter.jsonc"]) {
+      const source = read(file);
+      expect(source).not.toContain("linter-panel");
+      expect(source).not.toContain("alt-l");
+      expect(source).not.toContain("toggle-panel");
+    }
   });
 
   it("ships a CSS stylesheet built on custom properties, not Less", () => {
@@ -55,10 +65,12 @@ describe("linter package assets", () => {
     expect(css).toMatch(/\.linter-text\s*\{[^}]*text-decoration-thickness:\s*1px;/);
   });
 
-  it("reserves an invisible status indicator in file mode", () => {
+  it("styles the decorations and the hover, and nothing the panel draws", () => {
     const css = read("styles/linter.css");
-    expect(css).toMatch(/\.linter-status\s*\{[^}]*border-left:\s*2px solid transparent;/);
-    expect(css).toMatch(/&\.project-mode\s*\{[^}]*border-color:\s*var\(--text-color-highlight\);/);
+    expect(css).toContain(".linter-hover");
+    expect(css).not.toContain(".linter-panel");
+    expect(css).not.toContain(".linter-status");
+    expect(css).not.toContain(".linter-row");
   });
 
   it("is named `linter`, scopes its dependencies, and drops lodash", () => {
@@ -67,11 +79,19 @@ describe("linter package assets", () => {
     expect(pkg.author).toBe("lumine-code");
     expect(pkg.repository).toBe("https://github.com/lumine-code/linter");
     expect(pkg.dependencies.lodash).toBeUndefined();
-    expect(pkg.dependencies["@lumine-code/etch"]).toBeDefined();
-    // The editor provides the list through lumine.workspace.buildSelectList.
+    // The view libraries went with the view: the hub renders no DOM of its own.
+    expect(pkg.dependencies["@lumine-code/etch"]).toBeUndefined();
     expect(pkg.dependencies["@lumine-code/select-list"]).toBeUndefined();
-    expect(pkg.dependencies["@asiloisad/select-list"]).toBeUndefined();
     expect(pkg.dependencies.etch).toBeUndefined();
+  });
+
+  it("leaves the status bar and the panel's settings to the front end", () => {
+    const pkg = JSON.parse(read("package.json"));
+    expect(pkg.consumedServices["status-bar"]).toBeUndefined();
+    expect(pkg.configSchema.defaultSortMethod).toBeUndefined();
+    expect(pkg.configSchema.statusMode).toBeUndefined();
+    // A hub has nothing to teach; the tips went with the surfaces.
+    expect(pkg.backgroundTips).toBeUndefined();
   });
 
   it("keeps the shared linter service contract intact", () => {
@@ -88,7 +108,7 @@ describe("linter package assets", () => {
   it("has no leftover linter-bundle / lodash / unscoped-fork references in lib", () => {
     const libDir = path.join(root, "lib");
     for (const file of fs.readdirSync(libDir)) {
-      if (!/\.jsx?$/.test(file)) continue;
+      if (!/\.js$/.test(file)) continue;
       const src = fs.readFileSync(path.join(libDir, file), "utf8");
       // util.js documents what it replaces, so allow the word "lodash" there.
       const scrubbed = file === "util.js" ? src.replace(/lodash/g, "") : src;
