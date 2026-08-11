@@ -12,7 +12,7 @@ describe("lib/status", () => {
 
   const message = (severity) => ({ severity, excerpt: severity, location: { file: "/a.js" } });
 
-  const tileFor = (severity) => status.tiles.find((tile) => tile.severity.name === severity);
+  const tileFor = (severity) => status.counters.find((tile) => tile.severity.name === severity);
 
   beforeEach(() => {
     messages = [];
@@ -30,13 +30,13 @@ describe("lib/status", () => {
   });
 
   it("builds one tile per severity, in precedence order", () => {
-    expect(status.tiles.map((tile) => tile.severity.name)).toEqual([
+    expect(status.counters.map((tile) => tile.severity.name)).toEqual([
       "error",
       "warning",
       "info",
       "hint",
     ]);
-    expect(tileFor("hint").anchor.querySelector(".icon").classList).toContain("icon-light-bulb");
+    expect(tileFor("hint").counter.querySelector(".icon").classList).toContain("icon-light-bulb");
   });
 
   it("describes each status interaction in a composite tooltip", () => {
@@ -66,22 +66,22 @@ describe("lib/status", () => {
   it("ignores a severity outside the model rather than miscounting it", () => {
     messages = [message("boom")];
     status.update();
-    for (const tile of status.tiles) {
+    for (const tile of status.counters) {
       expect(tile.label.textContent).toBe("0");
     }
   });
 
   it("colors a tile only while it has something to report", () => {
     status.update();
-    expect(tileFor("error").anchor.classList).not.toContain("text-error");
+    expect(tileFor("error").counter.classList).not.toContain("text-error");
     messages = [message("error")];
     status.update();
-    expect(tileFor("error").anchor.classList).toContain("text-error");
+    expect(tileFor("error").counter.classList).toContain("text-error");
   });
 
   describe("the quiet tier", () => {
     const isHidden = (severity) =>
-      tileFor(severity).anchor.classList.contains("linter-status-tile-hidden");
+      tileFor(severity).counter.classList.contains("linter-status-counter-hidden");
 
     it("hides its tile at zero and shows it as soon as one arrives", () => {
       status.update();

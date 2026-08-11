@@ -99,10 +99,10 @@
     display: none;
   }
 
-  a + a {
+  .linter-status-counter + .linter-status-counter {
     margin-left: 0.5em;
   }
-  a {
+  .linter-status-counter {
     &.text-error {
       color: var(--text-color-error);
     }
@@ -118,7 +118,7 @@
   }
   /* A quiet tile only appears once it has something to report. Safe against the
    * a + a margin above because the quiet tiers rank last. */
-  a.linter-status-tile-hidden {
+  .linter-status-counter.linter-status-counter-hidden {
     display: none;
   }
   .icon::before {
