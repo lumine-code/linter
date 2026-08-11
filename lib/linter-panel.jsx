@@ -786,15 +786,16 @@ class LinterPanel {
       return this._visibleCache.messages;
     }
 
-    const messages = sorted.filter((message) => this.isSeverityVisible(message.severity));
     // The row index the click handler reads is an index into `sorted`, and a
-    // windowed render cannot recount it, so keep the mapping alongside.
-    const indices = new Map();
-    let visibleIndex = 0;
+    // windowed render cannot recount it, so the mapping is kept alongside — as
+    // an array, since it is dense and read by position.
+    const messages = [];
+    const indices = [];
     for (let i = 0; i < sorted.length; i++) {
-      if (this.isSeverityVisible(sorted[i].severity)) {
-        indices.set(visibleIndex++, i);
-      }
+      const message = sorted[i];
+      if (!this.isSeverityVisible(message.severity)) continue;
+      messages.push(message);
+      indices.push(i);
     }
 
     this._visibleCache = { sorted, generation: this._filterGeneration, messages, indices };
@@ -804,7 +805,7 @@ class LinterPanel {
   // The index into the sorted list of the row at this visible index.
   _sortedIndexFor(visibleIndex) {
     this._visibleMessages();
-    return this._visibleCache.indices.get(visibleIndex) ?? visibleIndex;
+    return this._visibleCache.indices[visibleIndex] ?? visibleIndex;
   }
 
   // Null during the first render: etch calls `render` before it has an element
