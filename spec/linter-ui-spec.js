@@ -410,6 +410,16 @@ describe("lib/linter-ui", () => {
       return element.querySelectorAll(".linter-text.hint");
     };
 
+    it("hands the messages straight back when no adapter projects", () => {
+      const messages = [message()];
+      normalizeMessages("spec", messages);
+
+      expect(ui.getMarkerMessages(messages)).toBe(messages);
+
+      ui.addItemAdapter({ getMarkerLocationsForMessage: () => [{ buffer }] });
+      expect(ui.getMarkerMessages(messages)).not.toBe(messages);
+    });
+
     it("renders one registry message in every projected split buffer", () => {
       const splitEditor = buildVisibleEditor();
       const splitBuffer = splitEditor.getBuffer();
