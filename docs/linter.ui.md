@@ -36,6 +36,7 @@ Only `name` is required. Implement the members you have a use for and leave the 
 | `render({ added, removed, messages })`           | no       | The message set changed. `messages` is the full current set; `added` and `removed` are the delta. |
 | `didBeginLinting({ linter, filePath, number })`  | no       | A provider started a run. `filePath` is `null` for a project-scoped linter.                       |
 | `didFinishLinting({ linter, filePath, number })` | no       | That run finished, whether it produced messages, failed, or timed out.                            |
+| `didChangeActiveItem()`                          | no       | The active pane item changed, or an adapter that claims one arrived. Ask again — see below.       |
 | `didChangeLintingState()`                        | no       | Linting was turned on or off for a buffer. No message changed, so nothing else says so.           |
 | `dispose()`                                      | no       | Release everything. Called for you — see Teardown.                                                |
 | `showProjectView()`                              | no       | A provider asked for the project's messages to be brought up. Honour it if you have such a view.  |
@@ -84,6 +85,8 @@ module.exports = {
 `render` receives the whole current message set on every change, not just the delta, so a UI that rebuilds from scratch can ignore `added` and `removed`. Use them only if rebuilding is expensive.
 
 Messages reaching a UI have already been normalized: `location.position` is a `Range`, `reference.position` is a `Point`, `linterName` is filled in, and `tags`, when present, holds only known values in a fixed order. Two fields are the hub's own bookkeeping but are contract all the same — `key` identifies a message across publishes, and `location.normalizedFile` is the spelling of its path that comparisons use, because a provider and a buffer rarely write the same file the same way. They are the same objects every UI holds, so treat them as read-only.
+
+**Take `didChangeActiveItem` rather than watching the workspace yourself.** `getCurrentMessages` and `getCursorEditor` are answered from state the hub updates on the same workspace event a UI would subscribe to, so a UI that subscribes separately is racing the hub — and loses whenever it registered first, reading the previous item for as long as it is on screen. This member fires after the hub has caught up.
 
 `didBeginLinting` and `didFinishLinting` are paired per run and carry a `number` that increments per provider, so a UI showing progress can ignore a `didFinishLinting` whose `number` is stale. `didFinishLinting` always fires, including when the provider threw or timed out.
 

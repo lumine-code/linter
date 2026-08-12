@@ -71,6 +71,30 @@ describe("the linter.ui handle", () => {
     expect(hub.getCursorEditor()).toBe(null);
   });
 
+  // A UI cannot watch the workspace for this itself. The hub answers
+  // `getCursorEditor` and `getCurrentMessages` from state it updates on the very
+  // same event, so a UI subscribing to it separately races the hub — and loses,
+  // whenever it registered first. It reads the previous item every time.
+  it("tells a UI the active item changed, once its own state has caught up", async () => {
+    const seen = [];
+    let hub = null;
+    main.consumeLinterUI(
+      ui({
+        attach: (handle) => (hub = handle),
+        didChangeActiveItem: () => seen.push(hub.getCursorEditor()),
+      }),
+    );
+
+    const first = await lumine.workspace.open("first.js");
+    const second = await lumine.workspace.open("second.js");
+
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen[seen.length - 1]).toBe(second);
+    expect(seen).toContain(first);
+    first.destroy();
+    second.destroy();
+  });
+
   // Everything but `name` is optional, and the hub calls each member only if
   // the UI has one.
   it("takes a UI that implements nothing but its name", () => {
