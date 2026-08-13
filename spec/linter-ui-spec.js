@@ -447,6 +447,72 @@ describe("lib/linter-ui", () => {
       expect(splitBuffer.linterUI.messages).toEqual([]);
     });
 
+    it("keeps a never-invalidated projected marker through an edit that touches it", () => {
+      // The shape language-server cell diagnostics arrive in: file and cell,
+      // no buffer of their own — the adapter's projection is the only way
+      // onto a buffer. The delegate said "never", and the invalidation is
+      // recorded against the ORIGINAL message; asking with the projected
+      // clone used to answer "touch", so the first keystroke that brushed a
+      // notebook marker destroyed it for good.
+      const original = message({
+        location: {
+          file: "/notebook.ipynb",
+          cell: 1,
+          position: [
+            [0, 6],
+            [0, 12],
+          ],
+        },
+      });
+      normalizeMessages("spec", [original], { markerInvalidation: "never" });
+      ui.addItemAdapter({
+        getMarkerLocationsForMessage: () => [{ buffer }],
+      });
+      ui.render({ added: [original], removed: [], messages: [original] });
+      expect(buffer.linterUI.markerMap.size).toBe(1);
+
+      // An edit inside the marker range — what typing or an undo does.
+      editor.setTextInBufferRange(
+        [
+          [0, 8],
+          [0, 8],
+        ],
+        "x",
+      );
+      expect(buffer.linterUI.markerMap.size).toBe(1);
+      expect(buffer.linterUI.markerMap.values().next().value[0].isDestroyed()).toBe(false);
+    });
+
+    it("re-creates markers the map lost while their messages stayed current", () => {
+      const original = message({
+        location: {
+          file: "/notebook.ipynb",
+          cell: 1,
+          position: [
+            [0, 6],
+            [0, 12],
+          ],
+        },
+      });
+      normalizeMessages("spec", [original], { markerInvalidation: "never" });
+      ui.addItemAdapter({
+        getMarkerLocationsForMessage: () => [{ buffer }],
+      });
+      ui.render({ added: [original], removed: [], messages: [original] });
+      expect(buffer.linterUI.markerMap.size).toBe(1);
+
+      // Whatever desyncs the map from the current set — a transient
+      // projection failure, an external teardown — the next render with no
+      // added or removed messages must repair it.
+      for (const markers of buffer.linterUI.markerMap.values())
+        for (const marker of markers) marker.destroy();
+      buffer.linterUI.markerMap.clear();
+
+      ui.render({ added: [], removed: [], messages: [original] });
+      expect(buffer.linterUI.markerMap.size).toBe(1);
+      expect(rendered(".linter-text.hint").length).toBeGreaterThan(0);
+    });
+
     it("deletes the registry-owned message when a projected marker is invalidated", () => {
       const original = message();
       ui.addItemAdapter({
