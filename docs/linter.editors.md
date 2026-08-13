@@ -35,8 +35,8 @@ The consumed value is a single function.
 
 Options — all optional:
 
-| Option | Type      | Default | Description                                                                                                                                                                                                        |
-| ------ | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Option | Type      | Default | Description                                                                                                                                                                                                         |
+| ------ | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lint` | `boolean` | `true`  | Run providers on this editor. `false` registers it for **rendering only**: its buffer gets the marker layers and answers hover, for an editor that displays messages an adapter projects onto it — a notebook cell. |
 
 A destroyed editor, or a value that is not a `TextEditor`, is refused silently: the returned `Disposable` is inert.
