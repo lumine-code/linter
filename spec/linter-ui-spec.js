@@ -513,6 +513,67 @@ describe("lib/linter-ui", () => {
       expect(rendered(".linter-text.hint").length).toBeGreaterThan(0);
     });
 
+    it("projects the standing messages onto a buffer patched after the publish", async () => {
+      // A notebook cell editor is built after its diagnostics arrived —
+      // restored windows, undo rebuilding a cell — and the registry reports
+      // no change, so no render would ever reach the new buffer without the
+      // patch-time catch-up.
+      const targets = [];
+      const original = message({
+        location: {
+          file: "/notebook.ipynb",
+          cell: 1,
+          position: [
+            [0, 6],
+            [0, 12],
+          ],
+        },
+      });
+      normalizeMessages("spec", [original], { markerInvalidation: "never" });
+      ui.addItemAdapter({
+        getMarkerLocationsForMessage: () => targets.map((target) => ({ buffer: target })),
+      });
+      ui.render({ added: [original], removed: [], messages: [original] });
+
+      const lateEditor = buildVisibleEditor();
+      targets.push(lateEditor.getBuffer());
+      await Promise.resolve();
+
+      expect(lateEditor.getBuffer().linterUI.messages.length).toBe(1);
+      expect(lateEditor.getBuffer().linterUI.markerMap.size).toBe(1);
+      expect(renderEditor(lateEditor).length).toBeGreaterThan(0);
+    });
+
+    it("rebuilds markers a whole-buffer replace dragged out of place", () => {
+      buffer.setText("line0\nconst unused = 1;\n");
+      const original = message({
+        location: {
+          file: "/notebook.ipynb",
+          cell: 1,
+          position: [
+            [1, 6],
+            [1, 12],
+          ],
+        },
+      });
+      normalizeMessages("spec", [original], { markerInvalidation: "never" });
+      ui.addItemAdapter({
+        getMarkerLocationsForMessage: () => [{ buffer }],
+      });
+      ui.render({ added: [original], removed: [], messages: [original] });
+      expect(buffer.linterUI.markerMap.values().next().value[0].getRange().start.row).toBe(1);
+
+      // What a notebook undo does: the whole source arrives as one setText,
+      // dragging every tracked marker to the splice edge while the message
+      // set stays byte-identical.
+      buffer.setText("changed\nanother\nconst unused = 1;\n");
+
+      expect(buffer.linterUI.markerMap.size).toBe(1);
+      const range = buffer.linterUI.markerMap.values().next().value[0].getRange();
+      expect(range.start.row).toBe(1);
+      expect(range.start.column).toBe(6);
+    });
+
     it("deletes the registry-owned message when a projected marker is invalidated", () => {
       const original = message();
       ui.addItemAdapter({
