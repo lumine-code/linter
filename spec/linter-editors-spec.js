@@ -115,4 +115,51 @@ describe("the linter.editors service", () => {
     expect(() => registration.dispose()).not.toThrow();
     expect(lintedEditors).toEqual([]);
   });
+
+  // `lint: false` registers an editor for rendering only: the buffer is
+  // patched so projected messages have marker layers to land on, but no
+  // provider ever runs on the editor itself. This is the mode for a notebook
+  // cell, whose diagnostics arrive against the notebook and reach the cell
+  // through a linter.adapter projection.
+  it("patches but never lints an editor registered with lint: false", async () => {
+    const consumed = Main.consumeLinter(provider);
+    const register = Main.provideLinterEditors();
+    editor = lumine.workspace.buildTextEditor();
+    editor.setText("word\n");
+    const renderOnly = lumine.workspace.buildTextEditor();
+    renderOnly.setText("word\n");
+
+    const renderRegistration = register(renderOnly, { lint: false });
+    expect(renderOnly.getBuffer().linterUI).toBeDefined();
+
+    // A linted sibling is the clock: once the pipeline has run for it, the
+    // render-only editor has had every opportunity it will ever get.
+    const lintedRegistration = register(editor);
+    await conditionPromise(() => lintedEditors.includes(editor));
+    expect(lintedEditors.includes(renderOnly)).toBe(false);
+
+    expect(() => renderRegistration.dispose()).not.toThrow();
+    lintedRegistration.dispose();
+    renderOnly.destroy();
+    consumed.dispose();
+  });
+
+  it("renders a marker placed on a render-only editor's severity layer", () => {
+    const register = Main.provideLinterEditors();
+    editor = lumine.workspace.buildTextEditor();
+    editor.setText("word\n");
+    const buffer = editor.getBuffer();
+
+    register(editor, { lint: false });
+
+    // A projection targeting this buffer lands on the severity layers; the
+    // render path must pick the marker up through the layer decoration.
+    buffer.linterUI.severityLayers.error.markRange([
+      [0, 0],
+      [0, 4],
+    ]);
+    const byMarker = editor.decorationManager.decorationPropertiesByMarkerForScreenRowRange(0, 1);
+    const classes = [...byMarker.values()].flat().map((properties) => properties.class);
+    expect(classes.some((value) => value?.includes("linter-text error"))).toBe(true);
+  });
 });
