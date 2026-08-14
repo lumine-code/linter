@@ -17,7 +17,7 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 
 ## Installation
 
-To install `linter` search for _linter_ in the Install pane of the Lumine settings or run `lumine --install lumine-code/linter`.
+To install `linter` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/linter`.
 
 ## Commands
 
@@ -67,14 +67,14 @@ Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
 
 ## Services
 
-- **[linter.registry](docs/linter.registry.md)** (`1.0.0`): provided to let packages push messages directly without implementing a full linter provider.
-- **[linter.editors](docs/linter.editors.md)** (`1.0.0`): provided to let a package register an editor of its own — a commit box, a notebook's source editor — for linting; only pane items are linted on their own.
-- **intentions.list** (`1.0.0`): provided to expose message solutions as quick-fix code actions at the cursor.
-- **mcp.tools** (`1.0.0`): provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
-- **hover.provider** (`1.0.0`): provided to show the messages under the pointer in the `hover` package's tooltip, ahead of any documentation source.
-- **[linter.provider](docs/linter.provider.md)** (`^1.0.0`): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
-- **[linter.ui](docs/linter.ui.md)** (`^1.0.0`): consumed to hand messages, and a handle to ask about them, to whatever displays them — the `linter-panel` package, a scrollbar overview.
-- **[linter.adapter](docs/linter.adapter.md)** (`^1.0.0`): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
+- [`linter.registry`](docs/linter.registry.md): provided to let packages push messages directly without implementing a full linter provider.
+- [`linter.editors`](docs/linter.editors.md): provided to let a package register an editor of its own — a commit box, a notebook's source editor — for linting; only pane items are linted on their own.
+- `intentions.list`: provided to expose message solutions as quick-fix code actions at the cursor.
+- `mcp.tools`: provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
+- `hover.provider`: provided to show the messages under the pointer in the `hover` package's tooltip, ahead of any documentation source.
+- [`linter.provider`](docs/linter.provider.md): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
+- [`linter.ui`](docs/linter.ui.md): consumed to hand messages, and a handle to ask about them, to whatever displays them — the `linter-panel` package, a scrollbar overview.
+- [`linter.adapter`](docs/linter.adapter.md): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
 
 ## Usage
 
