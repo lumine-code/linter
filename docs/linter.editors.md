@@ -4,7 +4,7 @@ Registers an editor that is not a pane item for linting, so a package's own edit
 
 |             |                                                                       |
 | ----------- | --------------------------------------------------------------------- |
-| Version     | `1.1.0`                                                               |
+| Version     | `1.0.0`                                                               |
 | Provided by | `provideLinterEditors()` returning `(editor, options?) => Disposable` |
 | Consumed by | any package with an editor of its own that is a document              |
 | Owner       | [`linter`](https://github.com/lumine-code/linter)                     |
@@ -66,4 +66,4 @@ Dispose the returned `Disposable` when the editor goes away or stops being a doc
 
 ## Versioning
 
-`1.1.0` provided. Consume `^1.0.0` for plain registration, `^1.1.0` when depending on `options` — an older provider would run providers on a render-only editor. A change that breaks this shape gets a new service name rather than a new major version, and both sides move in the same release.
+`1.0.0` provided, `^1.0.0` consumed. A change that breaks this shape gets a new service name rather than a new major version, and both sides move in the same release.

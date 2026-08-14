@@ -10,7 +10,7 @@
     "spec",
     "styles"
   ],
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "Linting infrastructure with inline markers and hovers.",
   "repository": "https://github.com/lumine-code/linter",
   "bugs": {
@@ -53,7 +53,7 @@
     },
     "linter.editors": {
       "versions": {
-        "1.1.0": "provideLinterEditors"
+        "1.0.0": "provideLinterEditors"
       }
     },
     "intentions.list": {
