@@ -100,6 +100,7 @@ describe("linter package assets", () => {
     expect(pkg.providedServices["linter.editors"].versions["1.0.0"]).toBe("provideLinterEditors");
     expect(pkg.providedServices["intentions.list"].versions["1.0.0"]).toBe("provideIntentionsList");
     expect(pkg.providedServices["mcp.tools"].versions["1.0.0"]).toBe("provideMcpTools");
+    expect(pkg.providedServices["marker.layer"].versions["1.0.0"]).toBe("provideMarkerLayer");
     expect(pkg.consumedServices["linter.provider"].versions["^1.0.0"]).toBe("consumeLinter");
     expect(pkg.consumedServices["linter.ui"].versions["^1.0.0"]).toBe("consumeLinterUI");
     expect(pkg.consumedServices["linter.adapter"].versions["^1.0.0"]).toBe("consumeLinterAdapter");

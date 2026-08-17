@@ -70,6 +70,11 @@
       "versions": {
         "1.0.0": "provideHover"
       }
+    },
+    "marker.layer": {
+      "versions": {
+        "1.0.0": "provideMarkerLayer"
+      }
     }
   },
   "activationHooks": [
@@ -165,6 +170,32 @@
         0,
         50
       ]
+    },
+    "marker": {
+      "title": "Marker",
+      "description": "Settings of the linter layer drawn on the scrollbar and minimap by the marker hub.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "description": "Show linter messages on the scrollbar and minimap.",
+          "type": "boolean",
+          "default": true
+        },
+        "showHints": {
+          "title": "Show hints",
+          "description": "Show messages of hint severity. Hints are usually numerous and would trip the threshold below.",
+          "type": "boolean",
+          "default": false
+        },
+        "threshold": {
+          "title": "Threshold",
+          "description": "Hide markers if count exceeds this value. Zero means no limit.",
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      }
     }
   }
 }
