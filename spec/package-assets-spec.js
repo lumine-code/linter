@@ -19,19 +19,19 @@ const parseJsonc = (rel) =>
 // hover and the services, and nothing that draws a panel.
 describe("linter package assets", () => {
   it("ships keymaps and menus as JSONC, not CSON or plain JSON", () => {
-    expect(exists("keymaps/linter.jsonc")).toBe(true);
-    expect(exists("menus/linter.jsonc")).toBe(true);
+    expect(exists("keymaps/main.jsonc")).toBe(true);
+    expect(exists("menus/main.jsonc")).toBe(true);
     expect(exists("keymaps/linter-bundle.cson")).toBe(false);
     expect(exists("menus/linter-bundle.cson")).toBe(false);
-    expect(exists("keymaps/linter.json")).toBe(false);
-    expect(exists("menus/linter.json")).toBe(false);
+    expect(exists("keymaps/main.json")).toBe(false);
+    expect(exists("menus/main.json")).toBe(false);
   });
 
   it("uses the linter: command prefix in the keymap and menu", () => {
-    const keymap = parseJsonc("keymaps/linter.jsonc");
+    const keymap = parseJsonc("keymaps/main.jsonc");
     expect(keymap["lumine-text-editor:not([mini])"]["alt-'"]).toBe("linter:next");
 
-    const menu = parseJsonc("menus/linter.jsonc");
+    const menu = parseJsonc("menus/main.jsonc");
     const flat = JSON.stringify(menu);
     expect(flat).toContain("linter:lint");
     // Menu entries must use the singular `command` key.
@@ -41,7 +41,7 @@ describe("linter package assets", () => {
   // The front end is `linter-panel`'s. Its commands, its reveal-tier key and
   // its root class must not be named from here.
   it("names nothing that belongs to the panel", () => {
-    for (const file of ["keymaps/linter.jsonc", "menus/linter.jsonc"]) {
+    for (const file of ["keymaps/main.jsonc", "menus/main.jsonc"]) {
       const source = read(file);
       expect(source).not.toContain("linter-panel");
       expect(source).not.toContain("alt-l");
