@@ -88,7 +88,7 @@
    underneath. */
 
 .linter-hover {
-  --linter-hover-accent: var(--text-color-subtle);
+  --linter-hover-severity-color: var(--text-color-subtle);
 
   display: grid;
   /* No size of its own: the tooltip sets the reading size for everything
@@ -101,7 +101,7 @@
   grid-template-columns: auto 1fr;
   gap: 0.5em;
   padding: calc(var(--component-padding) / 2) var(--component-padding);
-  border-left: 2px solid var(--linter-hover-accent);
+  border-left: 2px solid var(--linter-hover-severity-color);
 }
 
 /* One message reads as one block; several need telling apart. */
@@ -110,19 +110,19 @@
 }
 
 .linter-hover-item.error {
-  --linter-hover-accent: var(--text-color-error);
+  --linter-hover-severity-color: var(--text-color-error);
 }
 
 .linter-hover-item.warning {
-  --linter-hover-accent: var(--text-color-warning);
+  --linter-hover-severity-color: var(--text-color-warning);
 }
 
 .linter-hover-item.info {
-  --linter-hover-accent: var(--text-color-info);
+  --linter-hover-severity-color: var(--text-color-info);
 }
 
 .linter-hover-item.hint {
-  --linter-hover-accent: var(--text-color-subtle);
+  --linter-hover-severity-color: var(--text-color-subtle);
 }
 
 .linter-hover-icon {
