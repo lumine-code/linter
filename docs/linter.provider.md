@@ -109,7 +109,7 @@ Responses are ordered. A result that arrives after a newer request for the same 
 
 A `"project"`-scoped linter's results replace the entire project message set on every run, so it must return everything it knows about each time.
 
-Files are skipped before `lint` is called when they match the `linter.ignoreGlob` setting, when `linter.ignoreVCS` is on and the repository ignores them, or when the editor is a preview tab and `linter.lintPreviewTabs` is off. Neither of the first two questions can be asked about a buffer with no path, so such a buffer is linted: nothing has decided to ignore it, it is simply not a file yet. A user can also disable an individual provider by `name`, which skips it without unregistering it.
+Files are skipped before `lint` is called when they match the `linter.ignoreGlob` setting or when the editor is a preview tab and `linter.lintPreviewTabs` is off. A buffer with no path cannot match the glob and is linted. Repository ignore rules are discovery policy, so they never suppress a document the user explicitly opened. A user can also disable an individual provider by `name`, which skips it without unregistering it.
 
 Message shape is validated on every run in dev mode, and always when the return value is not an array; in a release build a plausible array is trusted. Develop with `--dev` if you want the diagnostics.
 

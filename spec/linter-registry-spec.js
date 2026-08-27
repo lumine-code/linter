@@ -41,9 +41,6 @@ describe("lib/linter-registry", () => {
     editor.destroy();
   });
 
-  // `isPathIgnored` answers `true` for a missing path, which used to make every
-  // never-saved buffer look like an ignored one and skip it before any provider
-  // ran. Nothing has decided to ignore it — it is simply not a file yet.
   it("lints a buffer that has never been saved", async () => {
     const editor = await lumine.workspace.open();
 
@@ -55,11 +52,24 @@ describe("lib/linter-registry", () => {
 
   it("still skips a path the ignore glob matches", async () => {
     const editor = await lumine.workspace.open(__filename);
-    spyOn(require("../lib/helpers"), "isPathIgnored").and.returnValue(Promise.resolve(true));
+    spyOn(require("../lib/helpers"), "matchesIgnoreGlob").and.returnValue(true);
 
     await registry.lint({ editor });
 
     expect(linted).toEqual([]);
+    editor.destroy();
+  });
+
+  it("does not consult repository ignore rules for an opened path", async () => {
+    const editor = await lumine.workspace.open(__filename);
+    const repositoryForPath = spyOn(lumine.project, "repositoryForPath").and.returnValue(
+      Promise.resolve({ isPathIgnored: () => true }),
+    );
+
+    await registry.lint({ editor });
+
+    expect(linted).toEqual([editor]);
+    expect(repositoryForPath).not.toHaveBeenCalled();
     editor.destroy();
   });
 });

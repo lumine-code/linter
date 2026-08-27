@@ -94,31 +94,28 @@ describe("lib/helpers", () => {
     });
   });
 
-  describe("isPathIgnored", () => {
-    it("treats a missing path as ignored", async () => {
-      expect(await Helpers.isPathIgnored(null, "**/*.min.{js,css}", false)).toBe(true);
+  describe("matchesIgnoreGlob", () => {
+    it("does not match a missing path", () => {
+      expect(Helpers.matchesIgnoreGlob(null, "**/*.min.{js,css}")).toBe(false);
     });
 
-    it("matches the ignore glob when the VCS check is disabled", async () => {
-      // ignoredVCS = false, so this never touches lumine.project (no repo needed).
-      expect(await Helpers.isPathIgnored("src/vendor/lib.min.js", "**/*.min.{js,css}", false)).toBe(
-        true,
-      );
-      expect(await Helpers.isPathIgnored("src/app.js", "**/*.min.{js,css}", false)).toBe(false);
+    it("matches the configured ignore glob", () => {
+      expect(Helpers.matchesIgnoreGlob("src/vendor/lib.min.js", "**/*.min.{js,css}")).toBe(true);
+      expect(Helpers.matchesIgnoreGlob("src/app.js", "**/*.min.{js,css}")).toBe(false);
     });
 
     // The compiled glob is kept between calls, so a changed setting has to take
     // effect and a stale pattern must not answer for the new one.
-    it("follows the glob changing", async () => {
-      expect(await Helpers.isPathIgnored("src/app.js", "**/*.min.js", false)).toBe(false);
-      expect(await Helpers.isPathIgnored("src/app.js", "**/app.js", false)).toBe(true);
-      expect(await Helpers.isPathIgnored("src/app.js", "**/*.min.js", false)).toBe(false);
+    it("follows the glob changing", () => {
+      expect(Helpers.matchesIgnoreGlob("src/app.js", "**/*.min.js")).toBe(false);
+      expect(Helpers.matchesIgnoreGlob("src/app.js", "**/app.js")).toBe(true);
+      expect(Helpers.matchesIgnoreGlob("src/app.js", "**/*.min.js")).toBe(false);
     });
 
     // picomatch throws on an empty pattern, and clearing the setting is how a
     // user says they want nothing ignored.
-    it("ignores nothing when the glob is empty", async () => {
-      expect(await Helpers.isPathIgnored("src/vendor/lib.min.js", "", false)).toBe(false);
+    it("matches nothing when the glob is empty", () => {
+      expect(Helpers.matchesIgnoreGlob("src/vendor/lib.min.js", "")).toBe(false);
     });
   });
 
