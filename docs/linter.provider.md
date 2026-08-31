@@ -103,9 +103,11 @@ Only documents are linted: the pane items open in the workspace, plus any editor
 
 `lint` is called per editor and raced against a 30-second timeout; a linter that overruns it has its result discarded.
 
+Changing an editor's grammar immediately retracts every file-scoped provider result for that buffer, discards file results still running under the old grammar, and runs the providers matching the new grammar. This is structural rather than a text change, so it happens even when `lintsOnChange` or the global lint-on-change setting is false. A project-scoped snapshot remains intact when one editor stops matching; a project provider that matches the new grammar replaces it on its next run as usual.
+
 Return `null` or `undefined` to leave the previous messages in place. Return `[]` to clear them.
 
-Responses are ordered. A result that arrives after a newer request for the same linter has already been answered is dropped, so a slow run cannot overwrite a fresh one. Results for a buffer that has since been destroyed are dropped too.
+Responses are ordered per provider and target buffer; a project-scoped provider has the whole project as its one target. A result that arrives after a newer request for the same target has started is dropped, so a slow run cannot overwrite a fresh one. Results for a buffer that has since been destroyed are dropped too.
 
 A `"project"`-scoped linter's results replace the entire project message set on every run, so it must return everything it knows about each time.
 

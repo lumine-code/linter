@@ -54,7 +54,7 @@ module.exports = {
 
 ## Behavior
 
-A registered editor behaves exactly like a pane item: providers whose `grammarScopes` match run on open, save and change, its messages appear on its markers and in every registered UI, and a buffer with no path is carried as [`location.buffer`](linter.provider.md). Registering an editor twice is a no-op, and registering one that is also a pane item changes nothing — it was already linted.
+A registered editor behaves exactly like a pane item: providers whose `grammarScopes` match run on open, save, text change and grammar change, its messages appear on its markers and in every registered UI, and a buffer with no path is carried as [`location.buffer`](linter.provider.md). Registering an editor twice is a no-op, and registering one that is also a pane item changes nothing — it was already linted.
 
 With `lint: false` no provider ever runs on the editor and nothing new appears in the panel; the registration only makes the editor able to **show** messages. That is for an editor whose content is checked through another route — a notebook cell, whose diagnostics arrive against the notebook and are projected onto the cell by a [`linter.adapter`](linter.adapter.md). Without the registration those projections have nowhere to land, since only patched buffers carry marker layers. The decorations retire with the editor on their own, so in this mode the returned `Disposable` is inert.
 

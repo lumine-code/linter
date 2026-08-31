@@ -33,7 +33,7 @@ describe("lib/linter-main linting progress", () => {
 
   const lintOnce = async () => {
     instance.registryLintersInit();
-    await instance.registryLinters.lint({ onChange: false, editor });
+    await instance.registryLinters.lint({ trigger: "manual", editor });
   };
 
   beforeEach(async () => {
