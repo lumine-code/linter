@@ -357,14 +357,19 @@ describe("lib/linter-ui", () => {
       const other = lumine.workspace.buildTextEditor();
       const otherBuffer = other.getBuffer();
       ui.patchEditor(other);
-      other.destroy();
+      otherBuffer.retain();
+      try {
+        other.destroy();
 
-      const reopened = lumine.workspace.buildTextEditor({ buffer: otherBuffer });
-      extraEditors.push(reopened);
-      ui.patchEditor(reopened);
+        const reopened = lumine.workspace.buildTextEditor({ buffer: otherBuffer });
+        extraEditors.push(reopened);
+        ui.patchEditor(reopened);
 
-      expect(otherBuffer.linterUI.severityLayers.error.isDestroyed()).toBe(false);
-      expect(buffersOf().length).toBe(2);
+        expect(otherBuffer.linterUI.severityLayers.error.isDestroyed()).toBe(false);
+        expect(buffersOf().length).toBe(2);
+      } finally {
+        otherBuffer.release();
+      }
     });
   });
 
