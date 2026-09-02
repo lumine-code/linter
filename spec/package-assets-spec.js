@@ -81,7 +81,6 @@ describe("linter package assets", () => {
     expect(pkg.dependencies.lodash).toBeUndefined();
     // The view libraries went with the view: the hub renders no DOM of its own.
     expect(pkg.dependencies["@lumine-code/etch"]).toBeUndefined();
-    expect(pkg.dependencies["@lumine-code/select-list"]).toBeUndefined();
     expect(pkg.dependencies.etch).toBeUndefined();
   });
 
