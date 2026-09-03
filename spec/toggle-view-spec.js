@@ -23,6 +23,6 @@ describe("ToggleView", () => {
 
     expect(lumine.config.get("linter.disabledProviders")).toEqual(["second"]);
     expect(view.selectList.getSelectedItemId()).toBe("second");
-    expect(view.selectList.isVisible()).toBe(true);
+    expect(view.selectListHost.isVisible()).toBe(true);
   });
 });
