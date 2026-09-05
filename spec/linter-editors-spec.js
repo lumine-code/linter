@@ -12,7 +12,7 @@ describe("lib/editor-registry discovery", () => {
     const registry = new EditorRegistry();
     registry.activate();
     const embedded = lumine.workspace.buildTextEditor();
-    const registration = lumine.textEditors.add(embedded);
+    const registration = lumine.textEditors.add(embedded, { role: "viewer" });
     const paneEditor = await lumine.workspace.open();
 
     expect(registry.get(embedded)).toBeUndefined();
