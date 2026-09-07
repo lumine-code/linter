@@ -82,6 +82,21 @@ describe("lib/hover-provider", () => {
       expect(provider.hover(editor, { row: 1, column: 2 })).toBe(null);
     });
 
+    it("follows a diagnostic shifted by an edit before it", () => {
+      publish([message()]);
+
+      editor.setTextInBufferRange(
+        [
+          [0, 0],
+          [0, 0],
+        ],
+        "prefix\n",
+      );
+
+      expect(provider.hover(editor, { row: 0, column: 8 })).toBe(null);
+      expect(provider.hover(editor, { row: 1, column: 8 })).not.toBe(null);
+    });
+
     it("declines while the setting is off", () => {
       publish([message()]);
       lumine.config.set("linter.showHoverTooltip", false);

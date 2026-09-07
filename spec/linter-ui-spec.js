@@ -200,6 +200,37 @@ describe("lib/linter-ui", () => {
 
       expect(markers.every((marker) => marker.isValid())).toBe(true);
       expect(buffer.linterUI.markerMap.get(tracked.key)).toBe(markers);
+      expect(tracked.location.displayRange).toEqual(markers[0].getRange());
+    });
+
+    it("keeps message interactions with a marker shifted by an earlier edit", () => {
+      const tracked = message();
+      publish([tracked]);
+      const marker = markersFor(tracked)[0];
+
+      editor.setTextInBufferRange(
+        [
+          [0, 0],
+          [0, 0],
+        ],
+        "prefix\n",
+      );
+
+      expect(marker.isValid()).toBe(true);
+      expect(marker.getRange()).toEqual([
+        [1, 6],
+        [1, 12],
+      ]);
+      expect(tracked.location.position).toEqual([
+        [0, 6],
+        [0, 12],
+      ]);
+      expect(tracked.location.displayRange).toEqual(marker.getRange());
+
+      editor.setCursorBufferPosition([1, 8]);
+      expect(ui.getCurrentMessage()).toBe(tracked);
+      ui.revealMessage(tracked);
+      expect(editor.getCursorBufferPosition()).toEqual([1, 6]);
     });
 
     it("does not extend an anchored zero-width diagnostic over inserted text", () => {
