@@ -49,7 +49,8 @@
     "linter.registry": {
       "versions": {
         "1.0.0": "provideLinterRegistry"
-      }
+      },
+      "activateOnConsume": true
     },
     "linter.editors": {
       "versions": {
@@ -78,7 +79,7 @@
     }
   },
   "activationHooks": [
-    "core:loaded-shell-environment"
+    "core:grammar-used"
   ],
   "dependencies": {
     "picomatch": "^4.0.7"
@@ -197,5 +198,19 @@
         }
       }
     }
+  },
+  "activationCommands": {
+    "lumine-workspace": [
+      "linter:clear",
+      "linter:debug",
+      "linter:inspect",
+      "linter:lint",
+      "linter:next",
+      "linter:previous",
+      "linter:state",
+      "linter:toggle-current-file",
+      "linter:toggle-linter",
+      "linter:toggle-selected-provider"
+    ]
   }
 }
