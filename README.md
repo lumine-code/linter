@@ -86,7 +86,7 @@ Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
 
 With no arguments the tool returns the messages of the active editor (`mode` is `file`). Pass `scope: "project"` for every message the project holds.
 
-The tool also accepts optional filters. When any of them is provided, the result is scoped from all known messages across the project whatever the scope says (`mode` is `filter`). This lets callers target a file that is not the focused tab, or even a file that was never opened:
+The tool also accepts optional filters. When any of them is provided, the result is scoped from all known messages across the project whatever the scope says (`mode` is `filter`). This lets callers target a file that is not the focused tab and can include diagnostics a project-scoped provider reported for a file that was never opened. The tool does not open files or trigger a lint pass, so it returns an empty list when no provider has already reported a matching diagnostic:
 
 - `filePath`: only messages for this file. Matching mirrors the filesystem: on Windows it is case-insensitive and treats `/` and `\` as equal, on POSIX it is exact.
 - `severity`: only messages with this severity (`error`, `warning`, `info` or `hint`).

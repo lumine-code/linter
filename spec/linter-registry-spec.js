@@ -53,6 +53,18 @@ describe("lib/linter-registry", () => {
     editor.destroy();
   });
 
+  it("clears a run's timeout when its provider finishes", async () => {
+    const editor = await lumine.workspace.open(__filename);
+    const timeoutID = 42;
+    spyOn(globalThis, "setTimeout").and.returnValue(timeoutID);
+    const clearTimeout = spyOn(globalThis, "clearTimeout");
+
+    await registry.lint({ editor });
+
+    expect(clearTimeout).toHaveBeenCalledWith(timeoutID);
+    editor.destroy();
+  });
+
   it("lints a buffer that has never been saved", async () => {
     const editor = await lumine.workspace.open();
 
