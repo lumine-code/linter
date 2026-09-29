@@ -233,6 +233,54 @@ describe("lib/linter-ui", () => {
       expect(editor.getCursorBufferPosition()).toEqual([1, 6]);
     });
 
+    it("does not read an unrelated diagnostic's display range while typing", () => {
+      const tracked = message();
+      publish([tracked]);
+      const readRange = spyOnProperty(tracked.location, "displayRange", "get").and.callThrough();
+
+      buffer.insert([1, 0], "x");
+
+      expect(readRange).not.toHaveBeenCalled();
+      expect(tracked.location.displayRange).toEqual([
+        [0, 6],
+        [0, 12],
+      ]);
+      expect(readRange).toHaveBeenCalledTimes(1);
+    });
+
+    it("freezes the live range when the UI releases its marker", () => {
+      const tracked = message();
+      publish([tracked]);
+      buffer.insert([0, 0], "prefix\n");
+
+      ui.dispose();
+      ui = null;
+
+      expect(Object.getOwnPropertyDescriptor(tracked.location, "displayRange").get).toBeUndefined();
+      expect(tracked.location.displayRange).toEqual([
+        [1, 6],
+        [1, 12],
+      ]);
+    });
+
+    it("rebuilds classic diagnostics after a whole-buffer replace without retiring them", async () => {
+      const tracked = message({ tags: ["unnecessary"] });
+      ui.onDeleteMessages = jasmine.createSpy("onDeleteMessages");
+      publish([tracked]);
+      const previous = markersFor(tracked);
+
+      buffer.setText("const unused = 2;\nanother();\n");
+      await Promise.resolve();
+
+      expect(ui.onDeleteMessages).not.toHaveBeenCalled();
+      expect(markersFor(tracked)).not.toBe(previous);
+      expect(markersFor(tracked).every((marker) => marker.isValid())).toBe(true);
+      expect(tracked.location.displayRange).toEqual([
+        [0, 6],
+        [0, 12],
+      ]);
+    });
+
     it("does not extend an anchored zero-width diagnostic over inserted text", () => {
       editor.setText("const unused");
       const tracked = message({

@@ -1,4 +1,4 @@
-const { CompositeDisposable } = require("lumine");
+const { CompositeDisposable, Disposable } = require("lumine");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -199,6 +199,20 @@ describe("linter marker layer", () => {
       layer.disposables.dispose();
     });
 
+    it("projects the live diagnostic range after edits move it", () => {
+      const layer = createLayer(editor, provider);
+      const tracked = message("warning", 2, 3);
+      tracked.location.displayRange = {
+        start: { row: 5, column: 0 },
+        end: { row: 6, column: 5 },
+      };
+      layer.cache.set("data", [tracked]);
+
+      expect(provider.getItems(layer)).toEqual([{ row: 5, end: 6, cls: "warning" }]);
+
+      layer.disposables.dispose();
+    });
+
     it("drops hint messages by default", () => {
       const layer = createLayer(editor, provider);
       layer.cache.set("data", [message("error", 1, 1), message("hint", 4, 4)]);
@@ -236,6 +250,174 @@ describe("linter marker layer", () => {
       layer.cache.clear();
       expect(provider.getItems(layer)).toEqual([]);
       layer.disposables.dispose();
+    });
+
+    describe("cached screen projection", () => {
+      let layer;
+
+      beforeEach(() => {
+        layer = createLayer(editor, provider);
+      });
+
+      afterEach(() => layer.disposables.dispose());
+
+      function tracked(row, key = `row-${row}`) {
+        const result = message("warning", row, row);
+        result.key = key;
+        const marker = editor.getBuffer().markRange(result.location.position, {
+          invalidate: "never",
+          exclusive: true,
+        });
+        Object.defineProperty(result.location, "displayRange", {
+          configurable: true,
+          get: () => marker.getRange(),
+        });
+        layer.disposables.add(new Disposable(() => marker.destroy()));
+        return result;
+      }
+
+      function exactItems(messages) {
+        return messages.map((entry) => {
+          const range = entry.location.displayRange || entry.location.position;
+          const start = editor.screenPositionForBufferPosition(range.start).row;
+          const end = editor.screenPositionForBufferPosition(range.end).row;
+          return { row: Math.min(start, end), end: Math.max(start, end), cls: entry.severity };
+        });
+      }
+
+      it("reuses unchanged diagnostics recreated by a provider", () => {
+        const first = [tracked(2), tracked(10), tracked(20)];
+        layer.cache.set("data", first);
+        provider.getItems(layer);
+        spyOn(editor, "screenPositionForBufferPosition").and.callThrough();
+        const replacements = [tracked(2), tracked(10), tracked(20)];
+        layer.cache.set("data", replacements);
+
+        const result = provider.getItems(layer);
+
+        expect(editor.screenPositionForBufferPosition).not.toHaveBeenCalled();
+        expect(result).toEqual(exactItems(replacements));
+      });
+
+      it("reuses a repeated snapshot before its replacement gets an inline marker", () => {
+        const original = tracked(10);
+        layer.cache.set("data", [original]);
+        provider.getItems(layer);
+        spyOn(editor, "screenPositionForBufferPosition").and.callThrough();
+        const replacement = message("warning", 10, 10);
+        replacement.key = original.key;
+        layer.cache.set("data", [replacement]);
+
+        const result = provider.getItems(layer);
+
+        expect(editor.screenPositionForBufferPosition).not.toHaveBeenCalled();
+        expect(result).toEqual(exactItems([replacement]));
+      });
+
+      it("projects only diagnostics on the wrapped row being edited", () => {
+        editor.getBuffer().setTextInRange(
+          [
+            [10, 0],
+            [10, 11],
+          ],
+          "x".repeat(30),
+        );
+        editor.displayLayer.reset({ softWrapColumn: 20 });
+        const messages = [tracked(2), tracked(10), tracked(20)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+        spyOn(editor, "screenPositionForBufferPosition").and.callThrough();
+
+        editor.getBuffer().insert([10, 0], "xx");
+        const result = provider.getItems(layer);
+
+        expect(editor.screenPositionForBufferPosition).toHaveBeenCalledTimes(2);
+        expect(result).toEqual(exactItems(messages));
+      });
+
+      it("replays disjoint changes within a transaction and later changes in order", () => {
+        const messages = [tracked(2), tracked(10), tracked(20)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+
+        editor.getBuffer().transact(() => {
+          editor.getBuffer().insert([5, 0], "\n");
+          editor.getBuffer().insert([15, 0], "\n");
+        });
+        editor.getBuffer().insert([8, 0], "\n");
+
+        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+      });
+
+      it("keeps snapshot rows fixed when no inline marker tracks an edit", () => {
+        const messages = [message("warning", 2, 2), message("warning", 20, 20)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+
+        editor.getBuffer().insert([5, 0], "\n");
+
+        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+      });
+
+      it("starts a new anchor when a provider repeats a moved diagnostic's old snapshot", () => {
+        const original = tracked(10);
+        layer.cache.set("data", [original]);
+        provider.getItems(layer);
+        editor.getBuffer().insert([5, 0], "\n");
+        expect(provider.getItems(layer)[0].row).toBe(11);
+        const replacement = tracked(10);
+        layer.cache.set("data", [replacement]);
+
+        expect(provider.getItems(layer)).toEqual([{ row: 10, end: 10, cls: "warning" }]);
+      });
+
+      it("reprojects diagnostics covered by a fold and offsets the later ones", () => {
+        const messages = [tracked(2), tracked(10), tracked(20)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+
+        const fold = editor.foldBufferRange([
+          [4, 0],
+          [12, 5],
+        ]);
+        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+        editor.unfoldBufferRow(4);
+        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+        expect(fold).toBeDefined();
+      });
+
+      it("invalidates the full projection when the wrap column resets", () => {
+        editor.getBuffer().setTextInRange(
+          [
+            [10, 0],
+            [10, 11],
+          ],
+          "x".repeat(60),
+        );
+        editor.displayLayer.reset({ softWrapColumn: 40 });
+        const messages = [tracked(2), tracked(10), tracked(20)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+
+        editor.displayLayer.reset({ softWrapColumn: 20 });
+
+        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+      });
+
+      it("coalesces pending same-row typing before a later overview update", () => {
+        const messages = [tracked(2), tracked(10), tracked(20)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+        spyOn(editor, "screenPositionForBufferPosition").and.callThrough();
+
+        for (let i = 0; i < 80; i++) {
+          editor.getBuffer().insert([10, 0], "x");
+        }
+        const result = provider.getItems(layer);
+
+        expect(editor.screenPositionForBufferPosition).toHaveBeenCalledTimes(2);
+        expect(result).toEqual(exactItems(messages));
+      });
     });
   });
 });

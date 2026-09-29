@@ -97,6 +97,33 @@ describe("lib/hover-provider", () => {
       expect(provider.hover(editor, { row: 1, column: 8 })).not.toBe(null);
     });
 
+    it("finds later diagnostics after earlier lines are deleted", () => {
+      editor.setText(Array(40).fill("const unused = 1;").join("\n"));
+      const messages = [20, 30].map((row) =>
+        message({
+          excerpt: `row ${row}`,
+          location: {
+            file: "/spec.js",
+            buffer,
+            position: [
+              [row, 6],
+              [row, 12],
+            ],
+          },
+        }),
+      );
+      normalizeMessages("spec", messages, { markerInvalidation: "never" });
+      ui.render({ added: messages, removed: [], messages });
+
+      buffer.deleteRows(0, 14);
+
+      const answer = provider.hover(editor, { row: 15, column: 8 });
+      expect(answer).not.toBe(null);
+      expect(
+        answer.contents.element.querySelector(".linter-hover-excerpt").textContent.trim(),
+      ).toBe("row 30");
+    });
+
     it("declines while the setting is off", () => {
       publish([message()]);
       lumine.config.set("linter.showHoverTooltip", false);
