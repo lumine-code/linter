@@ -193,6 +193,36 @@ describe("lib/message-registry", () => {
     expect(updates[1].updated).toEqual([first]);
   });
 
+  it("replaces extension keys when their count stays the same", () => {
+    const oldSymbol = Symbol("extension");
+    const newSymbol = Symbol("extension");
+    const first = { ...message("same"), removed: "old", [oldSymbol]: "old" };
+    const replacement = { ...message("same"), added: "new", [newSymbol]: "new" };
+    registry.set({ messages: [first], linter, buffer: null });
+
+    registry.set({ messages: [replacement], linter, buffer: null });
+
+    expect(registry.messages[0]).toBe(first);
+    expect(Object.hasOwn(first, "removed")).toBe(false);
+    expect(Object.hasOwn(first, oldSymbol)).toBe(false);
+    expect(first.added).toBe("new");
+    expect(first[newSymbol]).toBe("new");
+    expect(updates[1].updated).toEqual([first]);
+  });
+
+  it("refreshes extensions with the same keys in a different order", () => {
+    const first = { ...message("same"), alpha: { value: "old" }, beta: "old" };
+    const replacement = { ...message("same"), beta: "new", alpha: { value: "new" } };
+    registry.set({ messages: [first], linter, buffer: null });
+
+    registry.set({ messages: [replacement], linter, buffer: null });
+
+    expect(registry.messages[0]).toBe(first);
+    expect(first.alpha).toBe(replacement.alpha);
+    expect(first.beta).toBe("new");
+    expect(updates[1].updated).toEqual([first]);
+  });
+
   it("keeps separate metadata for duplicated canonical object occurrences", () => {
     const original = { ...message("same"), context: { version: 0 } };
     const first = { ...message("same"), context: { version: 1 } };
