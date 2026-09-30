@@ -161,5 +161,60 @@ describe("lib/validate", () => {
       const { excerpt: _excerpt, ...withoutExcerpt } = good;
       expect(Validate.messages("my-linter", [withoutExcerpt])).toBe(false);
     });
+
+    it("shares parsed positions with normalization without mutating validation inputs", () => {
+      const { Range, Point } = require("lumine");
+      const { normalizeMessages } = require("../lib/helpers");
+      const sourceRange = [
+        [0, 2],
+        [0, 5],
+      ];
+      const sourcePoint = [3, 7];
+      const diagnostic = {
+        severity: "warning",
+        excerpt: "shared positions",
+        location: { file: "/positions.js", position: sourceRange },
+        reference: { file: "/log.txt", position: sourcePoint },
+      };
+      const positionCache = new WeakMap();
+      spyOn(Range, "fromObject").and.callThrough();
+
+      expect(Validate.messages("spec", [diagnostic], positionCache)).toBe(true);
+      expect(diagnostic.location.position).toBe(sourceRange);
+      expect(diagnostic.reference.position).toBe(sourcePoint);
+      normalizeMessages("spec", [diagnostic], { positionCache });
+
+      expect(Range.fromObject).toHaveBeenCalledTimes(1);
+      expect(diagnostic.location.position instanceof Range).toBe(true);
+      expect(diagnostic.reference.position instanceof Point).toBe(true);
+      expect(diagnostic.location.position.start.column).toBe(2);
+      expect(diagnostic.reference.position.row).toBe(3);
+    });
+
+    it("keeps range and point interpretations separate when a source object is shared", () => {
+      const { Range, Point } = require("lumine");
+      const { normalizeMessages } = require("../lib/helpers");
+      const shared = {
+        start: { row: 0, column: 2 },
+        end: { row: 0, column: 5 },
+        row: 3,
+        column: 7,
+      };
+      const diagnostic = {
+        severity: "warning",
+        excerpt: "shared object",
+        location: { file: "/positions.js", position: shared },
+        reference: { file: "/log.txt", position: shared },
+      };
+      const positionCache = new WeakMap();
+
+      expect(Validate.messages("spec", [diagnostic], positionCache)).toBe(true);
+      normalizeMessages("spec", [diagnostic], { positionCache });
+
+      expect(diagnostic.location.position instanceof Range).toBe(true);
+      expect(diagnostic.reference.position instanceof Point).toBe(true);
+      expect(diagnostic.location.position.start.column).toBe(2);
+      expect(diagnostic.reference.position.row).toBe(3);
+    });
   });
 });

@@ -29,39 +29,44 @@ In your `package.json`:
 
 Only `name` is required. Implement the members you have a use for and leave the rest out — a scrollbar overview wants `render` and nothing else.
 
-| Member                                           | Required | Description                                                                                       |
-| ------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------- |
-| `name`                                           | yes      | Identifies the UI in error notifications.                                                         |
-| `attach(hub)`                                    | no       | Called once at registration, before the first `render`, with the handle described below.          |
-| `render({ added, removed, messages })`           | no       | The message set changed. `messages` is the full current set; `added` and `removed` are the delta. |
-| `didBeginLinting({ linter, filePath, number })`  | no       | A provider started a run. `filePath` is `null` for a project-scoped linter.                       |
-| `didFinishLinting({ linter, filePath, number })` | no       | That run finished, whether it produced messages, failed, or timed out.                            |
-| `didChangeActiveItem()`                          | no       | The active pane item changed, or an adapter that claims one arrived. Ask again — see below.       |
-| `didChangeLintingState()`                        | no       | Linting was turned on or off for a buffer. No message changed, so nothing else says so.           |
-| `dispose()`                                      | no       | Release everything. Called for you — see Teardown.                                                |
-| `showProjectView()`                              | no       | A provider asked for the project's messages to be brought up. Honour it if you have such a view.  |
+| Member                                           | Required | Description                                                                                                                                                           |
+| ------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                                           | yes      | Identifies the UI in error notifications.                                                                                                                             |
+| `attach(hub)`                                    | no       | Called once at registration, before the first `render`, with the handle described below.                                                                              |
+| `render({ added, removed, updated, messages })`  | no       | The message set changed. `messages` is the full current set; `added` and `removed` change membership; optional `updated` contains changed messages with the same key. |
+| `didBeginLinting({ linter, filePath, number })`  | no       | A provider started a run. `filePath` is `null` for a project-scoped linter.                                                                                           |
+| `didFinishLinting({ linter, filePath, number })` | no       | That run finished, whether it produced messages, failed, or timed out.                                                                                                |
+| `didChangeActiveItem()`                          | no       | The active pane item changed, or an adapter that claims one arrived. Ask again — see below.                                                                           |
+| `didChangeLintingState()`                        | no       | Linting was turned on or off for a buffer. No message changed, so nothing else says so.                                                                               |
+| `dispose()`                                      | no       | Release everything. Called for you — see Teardown.                                                                                                                    |
+| `showProjectView()`                              | no       | A provider asked for the project's messages to be brought up. Honour it if you have such a view.                                                                      |
 
 A member that is present but is not a function is a registration error: the UI is rejected with a dismissable notification and never receives anything.
+
+`updated` can contain a replacement or an existing canonical message whose provider extension fields changed. Treat it as a change notification even when the object identity is unchanged.
 
 ### The hub handle
 
 What `attach` receives. Each member answers something a message change cannot.
 
-| Member                        | Returns                 | Description                                                                                  |
-| ----------------------------- | ----------------------- | -------------------------------------------------------------------------------------------- |
-| `getMessages()`               | `Message[]`             | The whole current set, for a UI registering into a window that has been linting for a while. |
-| `getCurrentMessages()`        | `Message[]`             | Which of them belong to the active pane item, adapters included.                             |
-| `getCursorEditor()`           | `TextEditor \| null`    | The editor whose cursor marks a current position; `null` when the active item is not one.    |
-| `getSeverities()`             | `Severity[]`            | The severity model, most severe first. See below.                                            |
-| `revealMessage(message)`      | —                       | Scroll to a message and focus it, through whatever adapter owns its item.                    |
-| `deleteMessages(messages)`    | —                       | Remove them from the registry.                                                               |
-| `isLintingDisabled(editor)`   | `boolean`               | Whether the user turned linting off for that editor's buffer.                                |
-| `normalizePath(filePath)`     | `string \| null`        | The spelling `location.normalizedFile` is in. Compare paths with it, never with `===`.       |
-| `getDescription(message)`     | `string \| null`        | The resolved long form, or `null` while a lazy one has not been asked for.                   |
-| `hasLazyDescription(message)` | `boolean`               | Whether there is a long form still to fetch.                                                 |
-| `resolveDescription(message)` | `Promise<string\|null>` | Fetches it. Memoized, so a provider's function runs once however many UIs ask.               |
+| Member                                    | Returns                 | Description                                                                                                                          |
+| ----------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `getMessages()`                           | `Message[]`             | The whole current set, for a UI registering into a window that has been linting for a while.                                         |
+| `getCurrentMessages()`                    | `Message[]`             | Which of them belong to the active pane item, adapters included.                                                                     |
+| `getCursorEditor()`                       | `TextEditor \| null`    | The editor whose cursor marks a current position; `null` when the active item is not one.                                            |
+| `getMessagesAtPosition(editor, position)` | `Message[]`             | Diagnostics covering a buffer position in that editor, using live markers. Projected locations return their registry-owned messages. |
+| `getSeverities()`                         | `Severity[]`            | The severity model, most severe first. See below.                                                                                    |
+| `revealMessage(message)`                  | —                       | Scroll to a message and focus it, through whatever adapter owns its item.                                                            |
+| `deleteMessages(messages)`                | —                       | Remove them from the registry.                                                                                                       |
+| `isLintingDisabled(editor)`               | `boolean`               | Whether the user turned linting off for that editor's buffer.                                                                        |
+| `normalizePath(filePath)`                 | `string \| null`        | The spelling `location.normalizedFile` is in. Compare paths with it, never with `===`.                                               |
+| `getDescription(message)`                 | `string \| null`        | The resolved long form, or `null` while a lazy one has not been asked for.                                                           |
+| `hasLazyDescription(message)`             | `boolean`               | Whether there is a long form still to fetch.                                                                                         |
+| `resolveDescription(message)`             | `Promise<string\|null>` | Fetches it. Memoized, so a provider's function runs once however many UIs ask.                                                       |
 
 One frozen object, the same for every UI.
+
+A UI that also runs with an older linter should check for `getMessagesAtPosition` before calling it and fall back to searching its message snapshot.
 
 Each severity record carries `name`, `label`, `rank` (0 is most severe), `lsp`, `icon`, `textClass`, `gutterDot` and `hideWhenZero`. The list is open-ended, so read it rather than assuming four tiers, and give an unrecognized severity the lowest precedence.
 

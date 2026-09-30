@@ -141,6 +141,102 @@ describe("lib/helpers", () => {
       expect(result.oldKept).toEqual([]);
       expect(result.oldRemoved).toEqual([]);
     });
+
+    it("ignores a marker's live display range when comparing snapshots", () => {
+      const a = {
+        key: "same",
+        location: {
+          position: [
+            [0, 0],
+            [0, 1],
+          ],
+        },
+      };
+      Object.defineProperty(a.location, "displayRange", {
+        enumerable: true,
+        get: jasmine.createSpy("liveRange").and.throwError("should not be read"),
+      });
+      const b = {
+        key: "same",
+        location: {
+          position: [
+            [0, 0],
+            [0, 1],
+          ],
+        },
+      };
+
+      const result = Helpers.flagMessages([b], [a]);
+
+      expect(result.oldKept[0] === a).toBe(true);
+      expect(result.updated).toEqual([]);
+    });
+
+    it("refreshes changed marker invalidation policies outside the key", () => {
+      const a = {
+        severity: "warning",
+        excerpt: "same",
+        location: {
+          file: "/a.js",
+          position: [
+            [0, 0],
+            [0, 1],
+          ],
+        },
+      };
+      const b = {
+        severity: "warning",
+        excerpt: "same",
+        location: {
+          file: "/a.js",
+          position: [
+            [0, 0],
+            [0, 1],
+          ],
+        },
+      };
+      Helpers.normalizeMessages("spec", [a], { markerInvalidation: "touch" });
+      Helpers.normalizeMessages("spec", [b], { markerInvalidation: "never" });
+
+      expect(a.key).toBe(b.key);
+      expect(Helpers.flagMessages([b], [a]).updated).toEqual([b]);
+    });
+
+    it("preserves removed duplicate occurrences in snapshot order", () => {
+      const first = { key: "duplicate" };
+      const middle = { key: "other" };
+      const last = { key: "duplicate" };
+
+      const result = Helpers.flagMessages([{ key: "duplicate" }], [first, middle, last]);
+
+      expect(result.oldKept).toEqual([first]);
+      expect(result.oldRemoved).toEqual([middle, last]);
+    });
+
+    it("reuses a key index without consuming its duplicate occurrences", () => {
+      const original = [{ key: "same" }, { key: "same" }];
+      const index = Helpers.createMessageKeyIndex(original);
+
+      for (let i = 0; i < 3; i++) {
+        const result = Helpers.flagMessages([{ key: "same" }, { key: "same" }], original, index);
+        expect(result.oldKept[0]).toBe(original[0]);
+        expect(result.oldKept[1]).toBe(original[1]);
+        expect(result.newAdded).toEqual([]);
+        expect(result.oldRemoved).toEqual([]);
+      }
+    });
+
+    it("rebuilds a key index after an existing object changes its key", () => {
+      const original = [{ key: "before" }];
+      const index = Helpers.createMessageKeyIndex(original);
+      original[0].key = "after";
+
+      const result = Helpers.flagMessages([{ key: "after" }], original, index);
+
+      expect(result.oldKept[0]).toBe(original[0]);
+      expect(result.newAdded).toEqual([]);
+      expect(result.oldRemoved).toEqual([]);
+    });
   });
 
   describe("normalizeMessages", () => {
@@ -190,6 +286,38 @@ describe("lib/helpers", () => {
       const b = message({ tags: ["unnecessary", "deprecated"] });
       Helpers.normalizeMessages("my-linter", [a, b]);
       expect(a.key).toBe(b.key);
+    });
+
+    it("preserves the existing key format with batch-local prefixes", () => {
+      const messages = [
+        message(),
+        message({
+          linterName: "other",
+          reference: {
+            file: "/log.txt",
+            position: [2, 4],
+          },
+        }),
+      ];
+      Helpers.normalizeMessages("spec", messages);
+
+      for (const entry of messages) {
+        const batched = entry.key;
+        Helpers.updateMessageKey(entry);
+        expect(entry.key).toBe(batched);
+      }
+    });
+
+    it("recomputes changed file paths between normalization batches", () => {
+      const entry = message();
+      Helpers.normalizeMessages("spec", [entry]);
+      const previousKey = entry.key;
+      entry.location.file = "/other.js";
+
+      Helpers.normalizeMessages("spec", [entry]);
+
+      expect(entry.key).not.toBe(previousKey);
+      expect(entry.location.normalizedFile).toBe(Helpers.normalizePath("/other.js"));
     });
   });
 

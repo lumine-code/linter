@@ -141,4 +141,48 @@ describe("lib/linter-registry", () => {
     expect(received.map((message) => message.excerpt)).toEqual(["new"]);
     editor.destroy();
   });
+
+  it("drops a run from an earlier registration of the same provider object", async () => {
+    const editor = await lumine.workspace.open();
+    const resolvers = [];
+    const received = [];
+    const started = [];
+    registry.onDidUpdateMessages(({ messages }) => received.push(...messages));
+    registry.onDidBeginLinting(({ number }) => started.push(number));
+    linter.lint = () => new Promise((resolve) => resolvers.push(resolve));
+
+    const oldRun = registry.lint({ editor });
+    registry.deleteLinter(linter);
+    registry.addLinter(linter);
+    const newRun = registry.lint({ editor });
+    await conditionPromise(() => resolvers.length === 2);
+    resolvers[1]([messageFor(editor, "new generation")]);
+    await newRun;
+    resolvers[0]([messageFor(editor, "old generation")]);
+    await oldRun;
+
+    expect(received.map((entry) => entry.excerpt)).toEqual(["new generation"]);
+    expect(started[1]).toBeGreaterThan(started[0]);
+    editor.destroy();
+  });
+
+  it("does not reset requests when a registered provider is added again", async () => {
+    const editor = await lumine.workspace.open();
+    const resolvers = [];
+    const received = [];
+    registry.onDidUpdateMessages(({ messages }) => received.push(...messages));
+    linter.lint = () => new Promise((resolve) => resolvers.push(resolve));
+
+    const oldRun = registry.lint({ editor });
+    registry.addLinter(linter);
+    const newRun = registry.lint({ editor });
+    await conditionPromise(() => resolvers.length === 2);
+    resolvers[1]([messageFor(editor, "new")]);
+    await newRun;
+    resolvers[0]([messageFor(editor, "old")]);
+    await oldRun;
+
+    expect(received.map((entry) => entry.excerpt)).toEqual(["new"]);
+    editor.destroy();
+  });
 });

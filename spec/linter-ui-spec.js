@@ -82,6 +82,25 @@ describe("lib/linter-ui", () => {
   });
 
   describe("indexed diagnostic ownership", () => {
+    it("keeps anchors and avoids live range reads for an updated canonical extension", () => {
+      const original = message({ lspDiagnostic: { data: { version: 1 } } });
+      publish([original]);
+      const marker = buffer.linterUI.markerMap.get(original.key)[0];
+      const layer = buffer.linterUI.severityLayers[original.severity];
+      const reads = spyOn(layer, "getMarkerRange").and.callThrough();
+      original.lspDiagnostic = { data: { version: 2 } };
+
+      ui.render({ added: [], removed: [], updated: [original], messages: [original] });
+
+      // Object matchers eagerly pretty-print diagnostics and invoke their live
+      // getters even when the assertion passes. Capture the publication first.
+      const rangeReads = reads.calls.count();
+      expect(rangeReads).toBe(0);
+      expect(buffer.linterUI.markerMap.get(original.key)[0]).toBe(marker);
+      expect(buffer.linterUI.markerMessages.get(marker.id).message).toBe(original);
+      expect(ui.getMessagesAtPosition(editor, [0, 8])[0].lspDiagnostic.data.version).toBe(2);
+    });
+
     it("validates projected row order when a late editor catches up with standing messages", async () => {
       let target;
       ui.addItemAdapter({
