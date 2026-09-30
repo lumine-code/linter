@@ -8,7 +8,9 @@ const markerLayer = require("../lib/marker-layer");
 // case-insensitive, so a message and a buffer naming the same file must compare
 // equal. The real one is handed over on `attach`.
 const normalizePath = (filePath) =>
-  process.platform === "win32" ? filePath.replace(/\\/g, "/").toLowerCase() : filePath;
+  typeof filePath === "string" && process.platform === "win32"
+    ? filePath.replace(/\\/g, "/").toLowerCase()
+    : filePath;
 
 describe("linter marker layer", () => {
   let workspaceElement, editor, editorPath, tempDir;
@@ -148,6 +150,36 @@ describe("linter marker layer", () => {
 
       layer.disposables.dispose();
     });
+
+    it("refreshes updated message objects even when overview geometry is unchanged", () => {
+      const layer = createLayer(editor);
+      const original = message("warning", 2, 3);
+      original.key = "same-diagnostic";
+      ui.render({ added: [original], removed: [], messages: [original] });
+      layer.props.getItems(layer);
+      layer.update.calls.reset();
+      const replacement = message("warning", 2, 3);
+      replacement.key = original.key;
+
+      ui.render({ added: [], removed: [], updated: [replacement], messages: [replacement] });
+
+      expect(layer.cache.get("data")).toEqual([replacement]);
+      expect(layer.update).toHaveBeenCalledTimes(1);
+      expect(layer.props.getItems(layer)).toBeNull();
+      expect(layer.cache.get("projection").get(original.key).message).toBe(replacement);
+      layer.disposables.dispose();
+    });
+
+    it("ignores updated diagnostics belonging to other files", () => {
+      const layer = createLayer(editor);
+      const foreign = message("warning", 5, 5, path.join(tempDir, "other.js"));
+
+      ui.render({ added: [], removed: [], updated: [foreign], messages: [foreign] });
+
+      expect(layer.cache.get("data")).toEqual([]);
+      expect(layer.update).not.toHaveBeenCalled();
+      layer.disposables.dispose();
+    });
   });
 
   describe("marker.layer service provider", () => {
@@ -285,6 +317,31 @@ describe("linter marker layer", () => {
         });
       }
 
+      // Direct provider calls do not run the hub's assignment to layer.items.
+      // A null return keeps its previous raw output; the provider's saved
+      // projection remains available to assert against an exact conversion.
+      function currentItems() {
+        return provider.getItems(layer) ?? layer.cache.get("rendered").items;
+      }
+
+      it("skips an unchanged snapshot without filtering or projecting it again", () => {
+        const messages = [tracked(2), tracked(10), tracked(20)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+        spyOn(messages, "filter").and.callThrough();
+        spyOn(editor, "screenPositionForBufferPosition").and.callThrough();
+
+        expect(provider.getItems(layer)).toBeNull();
+
+        expect(messages.filter).not.toHaveBeenCalled();
+        expect(editor.screenPositionForBufferPosition).not.toHaveBeenCalled();
+      });
+
+      it("keeps an empty snapshot after its initial clear", () => {
+        expect(provider.getItems(layer)).toEqual([]);
+        expect(provider.getItems(layer)).toBeNull();
+      });
+
       it("reuses unchanged diagnostics recreated by a provider", () => {
         const first = [tracked(2), tracked(10), tracked(20)];
         layer.cache.set("data", first);
@@ -296,7 +353,11 @@ describe("linter marker layer", () => {
         const result = provider.getItems(layer);
 
         expect(editor.screenPositionForBufferPosition).not.toHaveBeenCalled();
-        expect(result).toEqual(exactItems(replacements));
+        expect(result).toBeNull();
+        expect(layer.cache.get("rendered").items).toEqual(exactItems(replacements));
+        expect(layer.cache.get("projection").get(replacements[0].key).message).toBe(
+          replacements[0],
+        );
       });
 
       it("reuses a repeated snapshot before its replacement gets an inline marker", () => {
@@ -311,7 +372,8 @@ describe("linter marker layer", () => {
         const result = provider.getItems(layer);
 
         expect(editor.screenPositionForBufferPosition).not.toHaveBeenCalled();
-        expect(result).toEqual(exactItems([replacement]));
+        expect(result).toBeNull();
+        expect(layer.cache.get("rendered").items).toEqual(exactItems([replacement]));
       });
 
       it("projects only diagnostics on the wrapped row being edited", () => {
@@ -332,7 +394,8 @@ describe("linter marker layer", () => {
         const result = provider.getItems(layer);
 
         expect(editor.screenPositionForBufferPosition).toHaveBeenCalledTimes(2);
-        expect(result).toEqual(exactItems(messages));
+        expect(result).toBeNull();
+        expect(layer.cache.get("rendered").items).toEqual(exactItems(messages));
       });
 
       it("replays disjoint changes within a transaction and later changes in order", () => {
@@ -346,7 +409,7 @@ describe("linter marker layer", () => {
         });
         editor.getBuffer().insert([8, 0], "\n");
 
-        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+        expect(currentItems()).toEqual(exactItems(messages));
       });
 
       it("keeps snapshot rows fixed when no inline marker tracks an edit", () => {
@@ -356,7 +419,7 @@ describe("linter marker layer", () => {
 
         editor.getBuffer().insert([5, 0], "\n");
 
-        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+        expect(currentItems()).toEqual(exactItems(messages));
       });
 
       it("starts a new anchor when a provider repeats a moved diagnostic's old snapshot", () => {
@@ -380,9 +443,9 @@ describe("linter marker layer", () => {
           [4, 0],
           [12, 5],
         ]);
-        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+        expect(currentItems()).toEqual(exactItems(messages));
         editor.unfoldBufferRow(4);
-        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+        expect(currentItems()).toEqual(exactItems(messages));
         expect(fold).toBeDefined();
       });
 
@@ -401,7 +464,7 @@ describe("linter marker layer", () => {
 
         editor.displayLayer.reset({ softWrapColumn: 20 });
 
-        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+        expect(currentItems()).toEqual(exactItems(messages));
       });
 
       it("coalesces pending same-row typing before a later overview update", () => {
@@ -416,7 +479,181 @@ describe("linter marker layer", () => {
         const result = provider.getItems(layer);
 
         expect(editor.screenPositionForBufferPosition).toHaveBeenCalledTimes(2);
-        expect(result).toEqual(exactItems(messages));
+        expect(result).toBeNull();
+        expect(layer.cache.get("rendered").items).toEqual(exactItems(messages));
+      });
+
+      it("consumes layout changes after the diagnostics without normalizing unchanged rows", () => {
+        const messages = [tracked(2), tracked(10)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+        editor.getBuffer().insert([25, 0], "\n");
+
+        expect(provider.getItems(layer)).toBeNull();
+        expect(layer.cache.get("screenChanges")).toEqual([]);
+        expect(layer.cache.get("rendered").items).toEqual(exactItems(messages));
+
+        editor.getBuffer().insert([5, 0], "\n");
+        expect(provider.getItems(layer)).toEqual(exactItems(messages));
+      });
+
+      it("reprojects a reset even when it reproduces the same overview rows", () => {
+        const messages = [tracked(2), tracked(10)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+        spyOn(editor, "screenPositionForBufferPosition").and.callThrough();
+        editor.displayLayer.reset({ softWrapColumn: 80 });
+        editor.screenPositionForBufferPosition.calls.reset();
+
+        expect(provider.getItems(layer)).toBeNull();
+        expect(editor.screenPositionForBufferPosition).toHaveBeenCalledTimes(4);
+        expect(layer.cache.get("rendered").items).toEqual(exactItems(messages));
+      });
+
+      it("reprojects a full replacement with the same line count", () => {
+        const messages = [tracked(2), tracked(10)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+        spyOn(editor, "screenPositionForBufferPosition").and.callThrough();
+
+        editor.setText(editor.getText().replaceAll("lorem", "other"));
+        const items = currentItems();
+
+        expect(editor.screenPositionForBufferPosition).toHaveBeenCalledTimes(4);
+        expect(items).toEqual(exactItems(messages));
+      });
+
+      it("refreshes a retired getter before later source edits", () => {
+        const diagnostic = tracked(10);
+        layer.cache.set("data", [diagnostic]);
+        provider.getItems(layer);
+        const retiredRange = diagnostic.location.displayRange;
+        Object.defineProperty(diagnostic.location, "displayRange", {
+          configurable: true,
+          writable: true,
+          value: retiredRange,
+        });
+        markerLayer.invalidateBuffer(editor.getBuffer());
+
+        expect(provider.getItems(layer)).toBeNull();
+        expect(layer.cache.get("projection").get(diagnostic.key).tracksEdits).toBe(false);
+        editor.getBuffer().insert([5, 0], "\n");
+        expect(provider.getItems(layer)).toBeNull();
+        expect(layer.cache.get("rendered").items).toEqual([{ row: 10, end: 10, cls: "warning" }]);
+      });
+
+      it("reprojects a rebound getter even when its descriptor still tracks edits", () => {
+        const diagnostic = tracked(2);
+        layer.cache.set("data", [diagnostic]);
+        provider.getItems(layer);
+        Object.defineProperty(diagnostic.location, "displayRange", {
+          configurable: true,
+          get: () => ({ start: { row: 10, column: 0 }, end: { row: 10, column: 5 } }),
+        });
+
+        markerLayer.invalidateBuffer(editor.getBuffer());
+
+        expect(provider.getItems(layer)).toEqual([{ row: 10, end: 10, cls: "warning" }]);
+        expect(layer.update).toHaveBeenCalledTimes(1);
+      });
+
+      it("reprojects a retired getter selectively while reusing unrelated anchors", () => {
+        const diagnostics = [tracked(2), tracked(10), tracked(20)];
+        layer.cache.set("data", diagnostics);
+        provider.getItems(layer);
+        const retired = diagnostics[1];
+        Object.defineProperty(retired.location, "displayRange", {
+          configurable: true,
+          writable: true,
+          value: retired.location.displayRange,
+        });
+        spyOn(editor, "screenPositionForBufferPosition").and.callThrough();
+
+        markerLayer.invalidateBuffer(editor.getBuffer(), { resetProjection: false });
+
+        expect(provider.getItems(layer)).toBeNull();
+        expect(editor.screenPositionForBufferPosition).toHaveBeenCalledTimes(2);
+        expect(layer.cache.get("projection").get(retired.key).tracksEdits).toBe(false);
+        expect(layer.cache.get("rendered").items).toEqual(exactItems(diagnostics));
+      });
+
+      it("keeps pending layout shifts while selectively retiring an anchor", () => {
+        const diagnostics = [tracked(2), tracked(10), tracked(20)];
+        layer.cache.set("data", diagnostics);
+        provider.getItems(layer);
+        editor.getBuffer().insert([5, 0], "\n");
+        const retired = diagnostics[1];
+        Object.defineProperty(retired.location, "displayRange", {
+          configurable: true,
+          writable: true,
+          value: retired.location.displayRange,
+        });
+        spyOn(editor, "screenPositionForBufferPosition").and.callThrough();
+
+        markerLayer.invalidateBuffer(editor.getBuffer(), { resetProjection: false });
+        const items = provider.getItems(layer);
+
+        expect(editor.screenPositionForBufferPosition).toHaveBeenCalledTimes(2);
+        expect(items).toEqual(exactItems(diagnostics));
+        expect(items.map((item) => item.row)).toEqual([2, 11, 21]);
+      });
+
+      it("invalidates only editors of the changed buffer", () => {
+        const other = lumine.workspace.buildTextEditor();
+        const otherLayer = createLayer(other, provider);
+        markerLayer.invalidateBuffer(editor.getBuffer());
+
+        expect(layer.update).toHaveBeenCalledTimes(1);
+        expect(otherLayer.update).not.toHaveBeenCalled();
+        otherLayer.disposables.dispose();
+        other.destroy();
+      });
+
+      it("preserves a change of keys even when their geometry is identical", () => {
+        const original = tracked(2, "old-key");
+        layer.cache.set("data", [original]);
+        provider.getItems(layer);
+        const replacement = tracked(2, "new-key");
+        layer.cache.set("data", [replacement]);
+
+        expect(provider.getItems(layer)).toEqual([{ row: 2, end: 2, cls: "warning" }]);
+        expect(layer.cache.get("projection").has(original.key)).toBe(false);
+        expect(layer.cache.get("projection").get(replacement.key).message).toBe(replacement);
+      });
+
+      it("preserves raw membership changes hidden by the hub's range merging", () => {
+        const first = tracked(2, "first");
+        const second = tracked(2, "second");
+        layer.cache.set("data", [first, second]);
+        provider.getItems(layer);
+        layer.items = [{ row: 2, end: 2, cls: "warning" }];
+        layer.cache.set("data", [first]);
+
+        expect(provider.getItems(layer)).toEqual([{ row: 2, end: 2, cls: "warning" }]);
+      });
+
+      it("does not hide a severity change at unchanged rows", () => {
+        const diagnostic = tracked(2);
+        layer.cache.set("data", [diagnostic]);
+        provider.getItems(layer);
+        const replacement = message("error", 2, 2);
+        replacement.key = diagnostic.key;
+        layer.cache.set("data", [replacement]);
+
+        expect(provider.getItems(layer)).toEqual([{ row: 2, end: 2, cls: "error" }]);
+      });
+
+      it("revisits hidden hints when the setting changes", () => {
+        const diagnostic = message("hint", 2, 2);
+        layer.cache.set("data", [diagnostic]);
+        expect(provider.getItems(layer)).toEqual([]);
+        expect(provider.getItems(layer)).toBeNull();
+
+        lumine.config.set("linter.marker.showHints", true);
+
+        expect(provider.getItems(layer)).toEqual([{ row: 2, end: 2, cls: "hint" }]);
+        lumine.config.set("linter.marker.showHints", false);
+        expect(provider.getItems(layer)).toEqual([]);
       });
     });
   });

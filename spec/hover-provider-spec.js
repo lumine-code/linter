@@ -1,6 +1,6 @@
 const LinterUI = require("../lib/linter-ui");
 const { normalizeMessages } = require("../lib/helpers");
-const { createHoverProvider } = require("../lib/hover-provider");
+const { createHoverProvider, messagesAtPosition } = require("../lib/hover-provider");
 
 // The tooltip itself belongs to the hover package; what this package owes it is
 // an answer about a position or a row, and an element to put on its surface.
@@ -122,6 +122,63 @@ describe("lib/hover-provider", () => {
       expect(
         answer.contents.element.querySelector(".linter-hover-excerpt").textContent.trim(),
       ).toBe("row 30");
+    });
+
+    it("reads only nearby diagnostic ranges when hovering near the end of a file", () => {
+      editor.setText(Array(200).fill("const unused = 1;").join("\n"));
+      const messages = Array.from({ length: 200 }, (_, row) =>
+        message({
+          excerpt: `row ${row}`,
+          location: {
+            file: "/spec.js",
+            buffer,
+            position: [
+              [row, 6],
+              [row, 12],
+            ],
+          },
+        }),
+      );
+      publish(messages);
+      const reads = messages.map((entry) =>
+        spyOnProperty(entry.location, "displayRange", "get").and.callThrough(),
+      );
+
+      const answer = provider.hover(editor, { row: 199, column: 8 });
+
+      expect(answer.contents.element.querySelectorAll(".linter-hover-item").length).toBe(1);
+      expect(reads.slice(0, -1).every((read) => read.calls.count() === 0)).toBe(true);
+    });
+
+    it("shows a tagged diagnostic once despite its additional decoration markers", () => {
+      publish([message({ tags: ["unnecessary", "deprecated"] })]);
+
+      const answer = provider.hover(editor, { row: 0, column: 8 });
+
+      expect(answer.contents.element.querySelectorAll(".linter-hover-item").length).toBe(1);
+    });
+
+    it("returns fresh metadata when its standing diagnostic key is unchanged", () => {
+      const original = message();
+      publish([original]);
+      const replacement = message({
+        solutions: [
+          {
+            title: "Use the value",
+            position: [
+              [0, 6],
+              [0, 12],
+            ],
+            replaceWith: "used",
+          },
+        ],
+      });
+      normalizeMessages("spec", [replacement]);
+      expect(replacement.key).toBe(original.key);
+
+      ui.render({ added: [], removed: [], updated: [replacement], messages: [replacement] });
+
+      expect(messagesAtPosition(buffer, { row: 0, column: 8 })[0]).toBe(replacement);
     });
 
     it("declines while the setting is off", () => {

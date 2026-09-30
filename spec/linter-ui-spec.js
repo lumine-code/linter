@@ -36,6 +36,7 @@ describe("lib/linter-ui", () => {
     for (const extraEditor of extraEditors) {
       extraEditor.destroy();
     }
+    editor.destroy();
   });
 
   // location.buffer short-circuits the path matching in assignMessages, so no
@@ -77,6 +78,155 @@ describe("lib/linter-ui", () => {
         "hint",
       ]);
       expect(Object.keys(buffer.linterUI.tagLayers)).toEqual(["unnecessary", "deprecated"]);
+    });
+  });
+
+  describe("indexed diagnostic ownership", () => {
+    it("validates projected row order when a late editor catches up with standing messages", async () => {
+      let target;
+      ui.addItemAdapter({
+        getMarkerLocationsForMessage: (diagnostic) =>
+          target
+            ? [
+                {
+                  buffer: target,
+                  displayRange:
+                    diagnostic.excerpt === "first"
+                      ? [
+                          [120, 0],
+                          [120, 1],
+                        ]
+                      : [
+                          [20, 0],
+                          [20, 1],
+                        ],
+                },
+              ]
+            : [],
+      });
+      const first = message({
+        excerpt: "first",
+        location: {
+          file: "/book.ipynb",
+          position: [
+            [2, 0],
+            [2, 1],
+          ],
+        },
+      });
+      const second = message({
+        excerpt: "second",
+        location: {
+          file: "/book.ipynb",
+          position: [
+            [10, 0],
+            [10, 1],
+          ],
+        },
+      });
+      publish([first, second]);
+      const late = lumine.workspace.buildTextEditor();
+      extraEditors.push(late);
+      late.setText(Array(151).fill("x").join("\n"));
+      target = late.getBuffer();
+      ui.patchEditor(late);
+      ui.setActiveItem(late);
+      await Promise.resolve();
+      expect(target.linterUI.hasProjectedMessages).toBe(true);
+      expect(target.linterUI.indexRowsOrdered).toBeNull();
+      late.setCursorBufferPosition([0, 0]);
+      expect(ui.getNextMessage().excerpt).toBe("first");
+      expect(target.linterUI.indexRowsOrdered).toBe(false);
+    });
+
+    it("rebinds metadata replacements to their existing live anchor and deletes the latest origin", async () => {
+      const original = message();
+      publish([original]);
+      const marker = buffer.linterUI.markerMap.get(original.key)[0];
+      buffer.insert([0, 0], "xx");
+      const replacement = message({ solutions: [] });
+      normalizeMessages("spec", [replacement]);
+      expect(replacement.key).toBe(original.key);
+      ui.render({ added: [], removed: [], updated: [replacement], messages: [replacement] });
+      expect(buffer.linterUI.markerMap.get(replacement.key)[0]).toBe(marker);
+      expect(buffer.linterUI.markerMessages.get(marker.id).message).toBe(replacement);
+      expect(replacement.location.displayRange.start.column).toBe(8);
+      expect(typeof Object.getOwnPropertyDescriptor(original.location, "displayRange").get).toBe(
+        "undefined",
+      );
+      editor.setCursorBufferPosition([0, 9]);
+      expect(ui.getCurrentMessage()).toBe(replacement);
+      ui.onDeleteMessages = jasmine.createSpy("delete");
+      buffer.delete([
+        [0, 8],
+        [0, 10],
+      ]);
+      await Promise.resolve();
+      expect(ui.onDeleteMessages).toHaveBeenCalledOnceWith([replacement]);
+    });
+
+    it("rebuilds a retained key when its marker invalidation policy changes", () => {
+      const original = message();
+      normalizeMessages("spec", [original], { markerInvalidation: "never" });
+      ui.render({ added: [original], removed: [], messages: [original] });
+      const marker = buffer.linterUI.markerMap.get(original.key)[0];
+      const replacement = message();
+      normalizeMessages("spec", [replacement], { markerInvalidation: "touch" });
+      ui.render({ added: [], removed: [], updated: [replacement], messages: [replacement] });
+      expect(marker.isDestroyed()).toBe(true);
+      expect(buffer.linterUI.markerMap.get(replacement.key)[0].getInvalidationStrategy()).toBe(
+        "touch",
+      );
+    });
+
+    it("keeps duplicate occurrences and unmarked severities in lookup results", () => {
+      const first = message();
+      const duplicate = message();
+      const other = message({ severity: "other" });
+      publish([first, duplicate, other]);
+      editor.setCursorBufferPosition([0, 8]);
+      const found = ui.getMessagesAtPosition(editor, editor.getCursorBufferPosition());
+      expect(found).toEqual([first, duplicate, other]);
+      expect(buffer.linterUI.unmarkedMessages.length).toBe(2);
+    });
+
+    it("updates indexed and static lookup immediately when the large-file threshold changes", () => {
+      const diagnostic = message();
+      publish([diagnostic]);
+      editor.setCursorBufferPosition([0, 8]);
+      lumine.config.set("linter.largeFileLineCount", 1);
+      expect(buffer.linterUI.markerMap.size).toBe(0);
+      expect(ui.getCurrentMessage()).toBe(diagnostic);
+      lumine.config.set("linter.largeFileLineCount", 20000);
+      expect(buffer.linterUI.markerMap.size).toBe(1);
+      expect(buffer.linterUI.unmarkedMessages).toEqual([]);
+      expect(ui.getCurrentMessage()).toBe(diagnostic);
+    });
+
+    it("keeps unrelated buffers out of inline marker reconciliation", () => {
+      const otherEditor = lumine.workspace.buildTextEditor();
+      extraEditors.push(otherEditor);
+      otherEditor.setText("const unused = 1;");
+      ui.patchEditor(otherEditor);
+      const original = message();
+      const other = message({
+        location: {
+          file: "/other.js",
+          buffer: otherEditor.getBuffer(),
+          position: [
+            [0, 6],
+            [0, 12],
+          ],
+        },
+      });
+      publish([original, other]);
+      const layer = otherEditor.getBuffer().linterUI.severityLayers.hint;
+      const reads = spyOn(layer, "getMarkerRange").and.callThrough();
+      const replacement = message({ solutions: [] });
+      normalizeMessages("spec", [replacement]);
+      ui.render({ added: [], removed: [], updated: [replacement], messages: [replacement, other] });
+      expect(reads).not.toHaveBeenCalled();
+      expect(otherEditor.getBuffer().linterUI.messages).toEqual([other]);
     });
   });
 
