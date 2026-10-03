@@ -88,6 +88,8 @@ module.exports = {
 
 An indie delegate is always project-scoped: its messages persist until you replace or clear them, and nothing re-runs on save or on change. Keeping them in step with the buffer is your job.
 
+Registered delegates appear alongside classic providers in `linter:toggle-linter`, grouped by `name`. Disabling a provider hides its messages from every linter surface while the delegate continues storing updates. Enabling it immediately restores its latest snapshot without asking the producer to run again. The setting is persisted in `linter.disabledProviders`; it does not stop a language server or disable its other features.
+
 Every call is committed immediately; marker invalidation does not add an update delay.
 
 The default `"touch"` retires a message as soon as an edit touches its inline range. It suits classic linters that recompute after typing stops, preventing their previous result from remaining visible during that delay.

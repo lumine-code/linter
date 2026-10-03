@@ -125,7 +125,7 @@
     },
     "disabledProviders": {
       "title": "Disabled providers",
-      "description": "Names of disabled linter providers",
+      "description": "Names of diagnostic providers whose messages are disabled",
       "type": "array",
       "items": {
         "type": "string"

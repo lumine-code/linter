@@ -29,6 +29,24 @@ describe("lib/message-registry", () => {
     expect(registry.messages).toEqual([]);
   });
 
+  it("keeps same-name providers independent when publishing and removing snapshots", () => {
+    const first = { name: "shared" };
+    const second = { name: "shared" };
+    const one = message("one");
+    const two = message("two");
+    registry.set({ messages: [one], linter: first, buffer: null });
+    registry.set({ messages: [two], linter: second, buffer: null });
+
+    expect(registry.messages).toEqual([one, two]);
+    registry.deleteByLinter(first);
+
+    expect(registry.messages).toEqual([two]);
+    expect(updates[2].removed).toEqual([one]);
+    const replacement = message("replacement");
+    registry.set({ messages: [replacement], linter: first, buffer: null });
+    expect(registry.messages).toEqual([two, replacement]);
+  });
+
   it("deletes a batch of messages in one update", () => {
     const one = message("one");
     const two = message("two");

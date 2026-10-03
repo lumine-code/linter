@@ -10,7 +10,7 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 - **Editor highlighting**: underline and gutter decorations for linted ranges, on two independent axes — severity, and the LSP tags a message carries.
 - **Hover messages**: shows the messages under the pointer, or the whole line's when the pointer rests on the gutter dot, through the `hover` package's tooltip.
 - **Quick fixes**: exposes the solutions a message carries as code actions at the cursor.
-- **Linter management**: enable or disable individual linter providers, or linting for one file.
+- **Linter management**: enable or disable messages from classic linters, project scans, and language servers in one provider list, or pause linting for one file.
 - **Jupyter notebook support**: works with `.ipynb` files through the `linter.adapter` service, mapping messages to individual cells.
 - **Any number of front ends**: hands every message change, and a handle to ask about them, to each `linter.ui` package — the panel, a scrollbar overview, a status indicator.
 - **Scrollbar markers**: shows the messages on the scrollbar and minimap via the marker hub.

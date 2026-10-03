@@ -111,7 +111,7 @@ Responses are ordered per provider and target buffer; a project-scoped provider 
 
 A `"project"`-scoped linter's results replace the entire project message set on every run, so it must return everything it knows about each time.
 
-Files are skipped before `lint` is called when they match the `linter.ignoreGlob` setting or when the editor is a preview tab and `linter.lintPreviewTabs` is off. A buffer with no path cannot match the glob and is linted. Repository ignore rules are discovery policy, so they never suppress a document the user explicitly opened. A user can also disable an individual provider by `name`, which skips it without unregistering it.
+Files are skipped before `lint` is called when they match the `linter.ignoreGlob` setting or when the editor is a preview tab and `linter.lintPreviewTabs` is off. A buffer with no path cannot match the glob and is linted. Repository ignore rules are discovery policy, so they never suppress a document the user explicitly opened. A user can also disable an individual provider by `name` in the shared `linter:toggle-linter` list, which skips it without unregistering it, immediately removes its messages, and discards any run still in flight. Enabling it requests a fresh lint of open document editors.
 
 Message shape is validated on every run in dev mode, and always when the return value is not an array; in a release build a plausible array is trusted. Develop with `--dev` if you want the diagnostics.
 
