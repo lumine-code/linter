@@ -74,7 +74,7 @@ Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
 - `mcp.tools`: provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
 - `hover.provider`: provided to show the messages under the pointer in the `hover` package's tooltip, ahead of any documentation source.
 - `marker.layer`: provided to draw the messages on the editor's overview maps (scrollbar, minimap).
-- [`linter.provider`](docs/linter.provider.md): consumed to collect diagnostics from linter providers such as `linter-eslint` or `linter-ruff`.
+- [`linter.provider`](docs/linter.provider.md): consumed to collect diagnostics from linter providers such as `spell-check`.
 - [`linter.ui`](docs/linter.ui.md): consumed to hand messages, and a handle to ask about them, to whatever displays them — the `linter-panel` package, a scrollbar overview.
 - [`linter.adapter`](docs/linter.adapter.md): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
 
