@@ -72,7 +72,7 @@ Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
 - [`linter.editors`](docs/linter.editors.md): provided to let a package register an editor of its own — a commit box, a notebook's source editor — for linting; only pane items are linted on their own.
 - `intentions.list`: provided to expose message solutions as quick-fix code actions at the cursor.
 - `mcp.tools`: provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
-- `hover.provider`: provided to show the messages under the pointer in the `hover` package's tooltip, ahead of any documentation source.
+- `context-help.provider`: provided to show diagnostic messages in tooltips and the documentation panel, ahead of documentation sources.
 - `marker.layer`: provided to draw the messages on the editor's overview maps (scrollbar, minimap).
 - [`linter.provider`](docs/linter.provider.md): consumed to collect diagnostics from linter providers such as `spell-check`.
 - [`linter.ui`](docs/linter.ui.md): consumed to hand messages, and a handle to ask about them, to whatever displays them — the `linter-panel` package, a scrollbar overview.

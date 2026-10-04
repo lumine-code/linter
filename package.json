@@ -66,9 +66,9 @@
         "1.0.0": "provideMcpTools"
       }
     },
-    "hover.provider": {
+    "context-help.provider": {
       "versions": {
-        "1.0.0": "provideHover"
+        "1.0.0": "provideContextHelp"
       }
     },
     "marker.layer": {
@@ -132,9 +132,9 @@
       },
       "default": []
     },
-    "showHoverTooltip": {
-      "title": "Show Hover Tooltip",
-      "description": "Show linter messages in the tooltip of the `hover` package when the pointer rests on an issue or on its gutter dot. Requires that package.",
+    "showContextHelp": {
+      "title": "Show Context Help",
+      "description": "Include linter messages in context help for issues and gutter dots, shown by hover tooltips and the documentation panel. Tooltips require the hover package.",
       "type": "boolean",
       "default": true
     },
