@@ -84,6 +84,143 @@ describe("lib/validate", () => {
       },
     };
 
+    it("accepts structured source, zero code and local or URI related locations", () => {
+      const entry = {
+        ...good,
+        code: 0,
+        source: "compiler",
+        relatedInformation: [
+          {
+            message: "Defined here",
+            location: {
+              file: "/related.dat",
+              position: [
+                [0, 0],
+                [0, 3],
+              ],
+            },
+          },
+          { message: "Unavailable source", uri: "untitled:other.dat" },
+        ],
+      };
+      expect(Validate.messages("spec", [entry])).toBe(true);
+      expect(Validate.messages("spec", [{ ...entry, code: "G310", relatedInformation: [] }])).toBe(
+        true,
+      );
+    });
+
+    it("rejects nonprimitive codes and sources, including nonfinite numbers", () => {
+      for (const code of [null, {}, [], true, NaN, Infinity]) {
+        expect(Validate.messages("spec", [{ ...good, code }])).toBe(false);
+      }
+      for (const source of [null, {}, [], true, 0]) {
+        expect(Validate.messages("spec", [{ ...good, source }])).toBe(false);
+      }
+    });
+
+    it("requires a message and exactly one related location representation", () => {
+      const location = {
+        file: "/related.dat",
+        position: [
+          [0, 0],
+          [0, 1],
+        ],
+      };
+      for (const relatedInformation of [
+        null,
+        {},
+        "source",
+        [null],
+        [{}],
+        [{ message: 42, location }],
+        [{ message: "Missing destination" }],
+        [{ message: "Both", location, uri: "untitled:other" }],
+        [{ message: "Empty URI", uri: "" }],
+      ]) {
+        expect(() => Validate.messages("spec", [{ ...good, relatedInformation }])).not.toThrow();
+        expect(Validate.messages("spec", [{ ...good, relatedInformation }])).toBe(false);
+      }
+    });
+
+    it("rejects malformed or nonfinite related coordinates without throwing", () => {
+      const sparsePoint = [0];
+      sparsePoint.length = 2;
+      for (const position of [
+        null,
+        {},
+        [],
+        [[0, 0]],
+        [[0, 0], [0]],
+        [[0, 0], sparsePoint],
+        [
+          [-1, 0],
+          [0, 1],
+        ],
+        [
+          [0, 0],
+          [Infinity, 1],
+        ],
+        [
+          [0, 0],
+          [NaN, 1],
+        ],
+        [
+          [0, "0"],
+          [0, 1],
+        ],
+      ]) {
+        const entry = {
+          ...good,
+          relatedInformation: [
+            { message: "Related", location: { file: "/related.dat", position } },
+          ],
+        };
+        expect(() => Validate.messages("spec", [entry])).not.toThrow();
+        expect(Validate.messages("spec", [entry])).toBe(false);
+      }
+    });
+
+    it("shares parsed related ranges with normalization without mutating validation input", () => {
+      const { Range } = require("lumine");
+      const { normalizeMessages } = require("../lib/helpers");
+      const position = [
+        [2, 3],
+        [2, 7],
+      ];
+      const entry = {
+        ...good,
+        location: { ...good.location },
+        relatedInformation: [{ message: "Related", location: { file: "/related.dat", position } }],
+      };
+      const cache = new WeakMap();
+      expect(Validate.messages("spec", [entry], cache)).toBe(true);
+      expect(entry.relatedInformation[0].location.position).toBe(position);
+      const parsed = cache.get(position);
+      expect(parsed instanceof Range).toBe(true);
+      normalizeMessages("spec", [entry], { positionCache: cache });
+      expect(entry.relatedInformation[0].location.position).toBe(parsed);
+    });
+
+    it("declines related proxies and throwing getters without an unhandled exception", () => {
+      const prototype = jasmine.createSpy("prototype").and.throwError("Do not inspect");
+      const proxy = new Proxy(
+        { message: "Related", uri: "untitled:other" },
+        { getPrototypeOf: prototype },
+      );
+      expect(Validate.messages("spec", [{ ...good, relatedInformation: [proxy] }])).toBe(false);
+      expect(prototype).not.toHaveBeenCalled();
+      const related = {};
+      Object.defineProperty(related, "message", {
+        get() {
+          throw new Error("Provider failed");
+        },
+      });
+      expect(() =>
+        Validate.messages("spec", [{ ...good, relatedInformation: [related] }]),
+      ).not.toThrow();
+      expect(Validate.messages("spec", [{ ...good, relatedInformation: [related] }])).toBe(false);
+    });
+
     it("accepts a valid message array", () => {
       expect(Validate.messages("my-linter", [good])).toBe(true);
     });

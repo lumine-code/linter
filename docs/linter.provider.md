@@ -56,15 +56,18 @@ A buffer that has never been saved has no path, so a message about one names the
 
 And these are optional:
 
-| Field         | Type                                        | Description                                                           |
-| ------------- | ------------------------------------------- | --------------------------------------------------------------------- |
-| `tags`        | `("unnecessary" \| "deprecated")[]`         | Dims or strikes the marked range. Orthogonal to `severity`.           |
-| `description` | string \| `() => string \| Promise<string>` | Long form, shown beside the excerpt. See below.                       |
-| `solutions`   | array \| `Promise<array>`                   | Quick fixes. Also surfaced as code actions through `intentions.list`. |
-| `reference`   | `{ file: string, position: Point }`         | A second location, such as a prior declaration. Also `NaN`-checked.   |
-| `url`         | string                                      | A link to the rule's documentation, opened in the browser.            |
-| `icon`        | string                                      | Icon name, for a UI that shows one per message.                       |
-| `linterName`  | string                                      | Overrides `name` for this message.                                    |
+| Field                | Type                                        | Description                                                           |
+| -------------------- | ------------------------------------------- | --------------------------------------------------------------------- |
+| `tags`               | `("unnecessary" \| "deprecated")[]`         | Dims or strikes the marked range. Orthogonal to `severity`.           |
+| `description`        | string \| `() => string \| Promise<string>` | Long form, shown beside the excerpt. See below.                       |
+| `code`               | string \| number                            | Rule identifier. Numeric codes must be finite; `0` is valid.          |
+| `source`             | string                                      | Tool or subsystem that produced the diagnostic.                       |
+| `relatedInformation` | array                                       | Related messages with local ranges or a URI fallback. See below.      |
+| `solutions`          | array \| `Promise<array>`                   | Quick fixes. Also surfaced as code actions through `intentions.list`. |
+| `reference`          | `{ file: string, position: Point }`         | A second location, such as a prior declaration. Also `NaN`-checked.   |
+| `url`                | string                                      | A link to the rule's documentation, opened in the browser.            |
+| `icon`               | string                                      | Icon name, for a UI that shows one per message.                       |
+| `linterName`         | string                                      | Overrides `name` for this message.                                    |
 
 ## Minimal example
 
@@ -115,9 +118,25 @@ Files are skipped before `lint` is called when they match the `linter.ignoreGlob
 
 Message shape is validated on every run in dev mode, and always when the return value is not an array; in a release build a plausible array is trusted. Develop with `--dev` if you want the diagnostics.
 
-The hub normalizes what you return **in place**: positions become `Range` and `Point` instances, `linterName` is filled in from `name`, `tags` is reduced to the known values in a fixed order (and dropped when none survive), and a stable key is attached. Do not assume the objects you returned stay untouched, and do not hand out shared or frozen objects.
+The hub normalizes what you return **in place**: positions become `Range` and `Point` instances, including local ranges in `relatedInformation`, `linterName` is filled in from `name`, `tags` is reduced to the known values in a fixed order (and dropped when none survive), and a stable key is attached. Do not assume the objects you returned stay untouched, and do not hand out shared or frozen objects. The key includes `code`, `source` and related messages and destinations; rebuilding equivalent metadata keeps the existing message identity, while changing a related location refreshes it.
 
-`description` is the message's long form and is rendered as plain text: under the excerpt in the hover tooltip, and in the `GetLinterMessages` MCP tool. It is where a rule code (`Ruff: F401`) or a set of related locations belongs — the excerpt stays the one-line summary. The string form is shown as soon as the message arrives. The function form is called at most once per message, when a reader asks for the long form — the hover tooltip opening, a UI's "details" affordance — and its result is cached until the next lint run replaces the message; a function that throws costs the long form, not the message. Only the string form reaches the MCP tool, which never runs provider code.
+`description` is the message's long form and is rendered as plain text: under the excerpt in the hover tooltip, and in the `GetLinterMessages` MCP tool. The excerpt stays the one-line summary. Providers can supply `code`, `source` and `relatedInformation` separately for a compact hover with file navigation, and keep a readable plain-text description for older consumers and MCP. The string form is shown as soon as the message arrives. The function form is called at most once per message, when a reader asks for the long form — the hover tooltip opening, a UI's "details" affordance — and its result is cached until the next lint run replaces the message; a function that throws costs the long form, not the message. Only the string form reaches the MCP tool, which never runs provider code.
+
+Each `relatedInformation` entry contains a string `message` and exactly one of `location: { file, position }` or `uri`. A local `file` is an absolute path and `position` is a zero-based Range-compatible value with finite, nonnegative coordinates. The hover opens a local related file at its range; a URI fallback is displayed as plain text. The metadata is optional and does not change the `1.0.0` service contract. `linterName` remains the provider label; `source` names the diagnostic's origin.
+
+```js
+{
+  code: "G310",
+  source: "compiler",
+  relatedInformation: [
+    {
+      message: "Defined here",
+      location: { file: "/project/defs.inc", position: [[4, 2], [4, 8]] },
+    },
+    { message: "Unavailable source", uri: "untitled:other.dat" },
+  ],
+}
+```
 
 The severity and tag vocabularies follow the LSP diagnostic model — `severity` mirrors `DiagnosticSeverity` (`error` 1, `warning` 2, `info` 3, `hint` 4) and `tags` mirrors `DiagnosticTag` — and both sets are open-ended. A consumer must supply its own default for a value it does not recognize rather than assume a fixed set of keys, and should treat an unknown severity as the lowest precedence.
 

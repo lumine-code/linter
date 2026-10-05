@@ -91,6 +91,7 @@
   --linter-hover-severity-color: var(--text-color-subtle);
 
   display: grid;
+  max-inline-size: 64ch;
   /* No size of its own: the tooltip sets the reading size for everything
      standing on it, and declaring the interface size here would undo it. */
   line-height: var(--prose-line-height);
@@ -98,7 +99,7 @@
 
 .linter-hover-item {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 0.5em;
   padding: calc(var(--component-padding) / 2) var(--component-padding);
   border-left: 2px solid var(--linter-hover-severity-color);
@@ -173,7 +174,15 @@
 }
 
 .linter-hover-source {
-  text-transform: lowercase;
+  overflow-wrap: anywhere;
+}
+
+.linter-hover-code {
+  color: var(--text-color);
+  background: rgb(from var(--text-color) r g b / 8%);
+  border-radius: var(--component-border-radius);
+  padding: 0 0.35em;
+  white-space: nowrap;
 }
 
 /* The provider's long form: a rule code, a related location. Plain text, since
@@ -181,18 +190,58 @@
    belongs to the pair, so it is drawn here and stays away when the long form
    has nothing to say. */
 .linter-hover-detail {
+  flex-basis: 100%;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 
   &:empty {
     display: none;
   }
+}
 
-  /* Against the gap between the two, so the colon sits on the name. */
-  &::before {
-    content: ":";
-    margin-left: -0.75em;
-    margin-right: 0.25em;
+.linter-hover-related {
+  display: grid;
+  gap: 0.5em;
+  list-style: none;
+  margin: 0.6em 0 0;
+  padding: 0.5em 0 0;
+  border-top: 1px solid var(--overlay-border-color);
+}
+
+.linter-hover-related-item {
+  min-width: 0;
+}
+
+.linter-hover-related-message,
+.linter-hover-related-uri {
+  color: var(--text-color-subtle);
+  overflow-wrap: anywhere;
+}
+
+.linter-hover-related-location,
+.linter-hover-reference {
+  appearance: none;
+  display: inline;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-color-info);
+  font: inherit;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--text-color-info);
+    outline-offset: 2px;
+    border-radius: var(--component-border-radius);
   }
 }
 

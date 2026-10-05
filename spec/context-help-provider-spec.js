@@ -1,4 +1,5 @@
 const LinterUI = require("../lib/linter-ui");
+const path = require("node:path");
 const { normalizeMessages } = require("../lib/helpers");
 const { createContextHelpProvider, messagesAtPosition } = require("../lib/context-help-provider");
 
@@ -251,6 +252,118 @@ describe("lib/context-help-provider", () => {
       await description.calls.mostRecent().returnValue;
       await Promise.resolve();
       expect(detail.textContent).toBe("no-unused-vars");
+    });
+
+    it("shows one structured rule code and provider while related paths have their own navigation", () => {
+      const file = path.resolve("project", "[c] main ą😀.dat");
+      const description = `sofistik-linter: G310\n\n${file}:150:3: Original SOFILOAD program header.`;
+      publish([
+        message({
+          linterName: "SOFiSTiK Language Server",
+          source: "sofistik-linter",
+          code: "G310",
+          description,
+          location: { ...message().location, file },
+          relatedInformation: [
+            {
+              message: "Original SOFILOAD program header.",
+              location: {
+                file,
+                position: [
+                  [149, 2],
+                  [149, 10],
+                ],
+              },
+            },
+          ],
+        }),
+      ]);
+      const element = provider.getHelp(editor, { row: 0, column: 8 }).contents.render();
+      expect(element.querySelector(".linter-hover-code").textContent).toBe("G310");
+      expect(element.querySelector(".linter-hover-source").textContent).toBe(
+        "SOFiSTiK Language Server",
+      );
+      expect(element.querySelector(".linter-hover-detail").textContent).toBe("");
+      expect(element.textContent.match(/G310/g).length).toBe(1);
+      expect(element.textContent).not.toContain("file://");
+      expect(element.textContent).not.toContain("%20");
+      const link = element.querySelector(".linter-hover-related-location");
+      expect(link.tagName).toBe("BUTTON");
+      expect(link.textContent).toBe("[c] main ą😀.dat:150:3");
+      expect(link.title).toBe(`${file}:150:3`);
+      spyOn(lumine.workspace, "open").and.resolveTo(editor);
+      link.click();
+      expect(lumine.workspace.open).toHaveBeenCalledOnceWith(file, {
+        initialLine: 149,
+        initialColumn: 2,
+        pending: true,
+      });
+    });
+
+    it("uses project-relative paths for another file without conflating matching basenames", () => {
+      const file = path.resolve("project", "src", "main.dat");
+      const child = path.resolve("project", "includes", "main.dat");
+      spyOn(lumine.project, "relativizePath").and.callFake((target) => [
+        path.resolve("project"),
+        path.relative(path.resolve("project"), target),
+      ]);
+      publish([
+        message({
+          code: 0,
+          location: { ...message().location, file },
+          relatedInformation: [
+            {
+              message: "Value defined here.",
+              location: {
+                file: child,
+                position: [
+                  [4, 0],
+                  [4, 5],
+                ],
+              },
+            },
+          ],
+        }),
+      ]);
+      const element = provider.getHelp(editor, { row: 0, column: 8 }).contents.render();
+      expect(element.querySelector(".linter-hover-code").textContent).toBe("0");
+      expect(element.querySelector(".linter-hover-related-location").textContent).toBe(
+        `${path.join("includes", "main.dat")}:5:1`,
+      );
+    });
+
+    it("keeps unsupported targets inert and renders related messages as text", () => {
+      publish([
+        message({
+          code: "G310",
+          relatedInformation: [
+            { message: "<img src=x onerror=alert(1)>", uri: "javascript:alert(1)" },
+          ],
+        }),
+      ]);
+      const element = provider.getHelp(editor, { row: 0, column: 8 }).contents.render();
+      expect(element.querySelector(".linter-hover-related-message").textContent).toBe(
+        "<img src=x onerror=alert(1)>",
+      );
+      expect(element.querySelector("img")).toBeNull();
+      expect(element.querySelector(".linter-hover-related-location")).toBeNull();
+      expect(element.querySelector(".linter-hover-related-uri").textContent).toBe(
+        "javascript:alert(1)",
+      );
+    });
+
+    it("preserves additional provider prose when structured metadata is present", () => {
+      publish([
+        message({
+          code: "F401",
+          source: "Ruff",
+          description: "This declaration has no references.",
+        }),
+      ]);
+      const element = provider.getHelp(editor, { row: 0, column: 8 }).contents.render();
+      expect(element.querySelector(".linter-hover-detail").textContent).toBe(
+        "This declaration has no references.",
+      );
     });
   });
 

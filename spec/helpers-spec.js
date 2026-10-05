@@ -1,6 +1,166 @@
 const Helpers = require("../lib/helpers");
 
 describe("lib/helpers", () => {
+  describe("structured diagnostic metadata", () => {
+    const message = (overrides = {}) => ({
+      severity: "warning",
+      excerpt: "numeric input",
+      code: 0,
+      source: "compiler",
+      location: {
+        file: "/main.dat",
+        position: [
+          [0, 1],
+          [0, 4],
+        ],
+      },
+      relatedInformation: [
+        {
+          message: "Defined here",
+          location: {
+            file: "/part.dat",
+            position: [
+              [2, 3],
+              [2, 7],
+            ],
+          },
+        },
+      ],
+      ...overrides,
+    });
+
+    it("normalizes related locations without replacing zero codes or URI fallbacks", () => {
+      const { Range } = require("lumine");
+      const entry = message();
+      entry.relatedInformation.push({ message: "Remote source", uri: "untitled:other.dat" });
+      Helpers.normalizeMessages("spec", [entry]);
+      expect(entry.code).toBe(0);
+      expect(entry.relatedInformation[0].location.position instanceof Range).toBe(true);
+      expect(entry.relatedInformation[0].location.position.start.row).toBe(2);
+      expect(entry.relatedInformation[1].uri).toBe("untitled:other.dat");
+    });
+
+    it("retains canonical identity when related arrays and ranges are rebuilt", () => {
+      const first = message();
+      const replacement = message();
+      Helpers.normalizeMessages("spec", [first, replacement]);
+      expect(first.key).toBe(replacement.key);
+      const change = Helpers.flagMessages([replacement], [first]);
+      expect(change.oldKept).toEqual([first]);
+      expect(change.updated).toEqual([]);
+      expect(change.newAdded).toEqual([]);
+    });
+
+    it("keys code types, sources, related destinations and messages semantically", () => {
+      const entries = [
+        message(),
+        message({ code: "0" }),
+        message({ code: 1 }),
+        message({ source: "other" }),
+        message({
+          relatedInformation: [
+            {
+              message: "Defined here",
+              location: {
+                file: "/moved.dat",
+                position: [
+                  [2, 3],
+                  [2, 7],
+                ],
+              },
+            },
+          ],
+        }),
+        message({
+          relatedInformation: [
+            {
+              message: "Defined here",
+              location: {
+                file: "/part.dat",
+                position: [
+                  [3, 3],
+                  [3, 7],
+                ],
+              },
+            },
+          ],
+        }),
+        message({
+          relatedInformation: [
+            {
+              message: "Different reason",
+              location: {
+                file: "/part.dat",
+                position: [
+                  [2, 3],
+                  [2, 7],
+                ],
+              },
+            },
+          ],
+        }),
+        message({ relatedInformation: [{ message: "Remote source", uri: "untitled:one.dat" }] }),
+        message({ relatedInformation: [{ message: "Remote source", uri: "untitled:two.dat" }] }),
+      ];
+      Helpers.normalizeMessages("spec", entries);
+      expect(new Set(entries.map((entry) => entry.key)).size).toBe(entries.length);
+    });
+
+    it("refreshes a changed related target instead of retaining a stale link", () => {
+      const first = message();
+      const replacement = message();
+      replacement.relatedInformation[0].location.position = [
+        [9, 0],
+        [9, 1],
+      ];
+      Helpers.normalizeMessages("spec", [first, replacement]);
+      const change = Helpers.flagMessages([replacement], [first]);
+      expect(change.oldRemoved).toEqual([first]);
+      expect(change.newAdded).toEqual([replacement]);
+    });
+
+    it("does not silently discard changed extensions on related records", () => {
+      const first = message();
+      const replacement = message();
+      first.relatedInformation[0].context = { version: 1 };
+      replacement.relatedInformation[0].context = { version: 2 };
+      Helpers.normalizeMessages("spec", [first, replacement]);
+      expect(first.key).toBe(replacement.key);
+      const change = Helpers.flagMessages([replacement], [first]);
+      expect(change.updated).toEqual([replacement]);
+      expect(change.oldKept[0].relatedInformation[0].context.version).toBe(2);
+    });
+
+    it("recognizes equivalent foreign-realm related records", () => {
+      const vm = require("node:vm");
+      const first = message({
+        relatedInformation: vm.runInNewContext(
+          "([{message:'Defined here',location:{file:'/part.dat',position:[[2,3],[2,7]]}}])",
+        ),
+      });
+      const replacement = message({
+        relatedInformation: vm.runInNewContext(
+          "([{message:'Defined here',location:{file:'/part.dat',position:[[2,3],[2,7]]}}])",
+        ),
+      });
+      Helpers.normalizeMessages("spec", [first, replacement]);
+      const change = Helpers.flagMessages([replacement], [first]);
+      expect(change.oldKept).toEqual([first]);
+      expect(change.updated).toEqual([]);
+    });
+
+    it("rejects proxy reuse without inspecting its prototype", () => {
+      const prototype = jasmine.createSpy("prototype").and.throwError("Do not inspect");
+      const first = message({ relatedInformation: new Proxy([], { getPrototypeOf: prototype }) });
+      const replacement = message({
+        relatedInformation: new Proxy([], { getPrototypeOf: prototype }),
+      });
+      Helpers.normalizeMessages("spec", [first, replacement]);
+      expect(() => Helpers.flagMessages([replacement], [first])).not.toThrow();
+      expect(prototype).not.toHaveBeenCalled();
+    });
+  });
+
   describe("normalizePath", () => {
     // Providers disagree about how to spell a path. A language server commonly
     // answers with a lowercase drive letter for the `C:\…` it was given, and
