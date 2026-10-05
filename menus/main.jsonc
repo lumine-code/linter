@@ -1,12 +1,4 @@
 {
-  // Right-click an editor to inspect the message under the cursor.
-  "context-menu": {
-    "lumine-text-editor:not([mini])": [
-      { "type": "separator" },
-      { "label": "Inspect Issue", "command": "linter:inspect" },
-      { "type": "separator" }
-    ]
-  },
   // Packages > Linter menu.
   "menu": [
     {
