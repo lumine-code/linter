@@ -468,6 +468,7 @@ describe("linter marker layer", () => {
       });
 
       it("coalesces pending same-row typing before a later overview update", () => {
+        editor.setSoftWrapped(false);
         const messages = [tracked(2), tracked(10), tracked(20)];
         layer.cache.set("data", messages);
         provider.getItems(layer);
