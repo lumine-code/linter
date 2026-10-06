@@ -1,7 +1,7 @@
 const Tags = require("../lib/tags");
 
 // The tag list is mirrored by the `.linter-tag-<tag>` rules in the stylesheet
-// and by the LSP DiagnosticTag mapping in the ide-client bridge, so pin it.
+// and by the LSP DiagnosticTag mapping in the ide bridge, so pin it.
 describe("lib/tags", () => {
   it("mirrors LSP DiagnosticTag", () => {
     expect(Tags.TAGS).toEqual(["unnecessary", "deprecated"]);
