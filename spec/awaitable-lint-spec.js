@@ -129,7 +129,11 @@ describe("awaitable linter passes", () => {
       await conditionPromise(() => resolve);
       if (change === "edit") original.setText("new text");
       if (change === "rename") original.setPath(`${filePath}.renamed`);
-      if (change === "destroy") original.destroy();
+      if (change === "destroy") {
+        original.destroy();
+        expect(target.isDestroyed()).toBeTrue();
+        expect(instance.snapshotEditors.size).toBe(0);
+      }
       resolve([message(target, "stale")]);
       await pass;
       expect(messages()).toEqual([]);
@@ -179,6 +183,8 @@ describe("awaitable linter passes", () => {
     const pass = instance.lintBuffer(original);
     await conditionPromise(() => resolve);
     instance.dispose();
+    expect(target.isDestroyed()).toBeTrue();
+    expect(instance.snapshotEditors.size).toBe(0);
     resolve([message(target, "obsolete")]);
     expect(await pass).toBeFalse();
     expect(await instance.lintBuffer(original)).toBeFalse();
@@ -186,6 +192,37 @@ describe("awaitable linter passes", () => {
     expect(target.isDestroyed()).toBeTrue();
     original.destroy();
   });
+
+  for (const teardown of ["package disposal", "buffer destruction"]) {
+    it(`releases a snapshot waiting for its grammar after ${teardown}`, async () => {
+      const original = buffer();
+      const build = lumine.workspace.buildTextEditor.bind(lumine.workspace);
+      let resolveReady, target;
+      const ready = new Promise((resolve) => {
+        resolveReady = resolve;
+      });
+      spyOn(provider, "lint").and.callThrough();
+      spyOn(lumine.workspace, "buildTextEditor").and.callFake((options) => {
+        target = build(options);
+        const setGrammar = target.setGrammar.bind(target);
+        spyOn(target, "setGrammar").and.callFake((grammar) => {
+          setGrammar(grammar);
+          Object.defineProperty(target.getBuffer().getLanguageMode(), "ready", { value: ready });
+        });
+        return target;
+      });
+      const pass = instance.lintBuffer(original);
+      expect(instance.snapshotEditors.size).toBe(1);
+      if (teardown === "package disposal") instance.dispose();
+      else original.destroy();
+      expect(target.isDestroyed()).toBeTrue();
+      expect(instance.snapshotEditors.size).toBe(0);
+      resolveReady();
+      expect(await pass).toBeFalse();
+      expect(provider.lint).not.toHaveBeenCalled();
+      expect(messages()).toEqual([]);
+    });
+  }
 
   it("keeps provider registration state private to each registry", async () => {
     const other = new (require("../lib/linter-registry"))();
