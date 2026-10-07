@@ -46,6 +46,11 @@
     }
   },
   "providedServices": {
+    "linter.lint": {
+      "versions": {
+        "1.0.0": "provideLint"
+      }
+    },
     "linter.registry": {
       "versions": {
         "1.0.0": "provideLinterRegistry"

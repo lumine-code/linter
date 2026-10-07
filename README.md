@@ -70,6 +70,7 @@ Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
 
 - [`linter.registry`](docs/linter.registry.md): provided to let packages push messages directly without implementing a full linter provider.
 - [`linter.editors`](docs/linter.editors.md): provided to let a package register an editor of its own — a commit box, a notebook's source editor — for linting; only pane items are linted on their own.
+- [`linter.lint`](docs/linter.lint.md): provided to await a lint pass for an editor or a named buffer without opening a tab.
 - `intentions.list`: provided to expose message solutions as quick-fix code actions at the cursor.
 - `mcp.tools`: provided to expose `GetLinterMessages`, a read-only diagnostics tool, to a connected MCP host.
 - `context-help.provider`: provided to show diagnostic messages in tooltips and the documentation panel, ahead of documentation sources.
