@@ -31,13 +31,13 @@ In your `package.json`:
 
 All five fields are required. A linter missing any of them is rejected with a dismissable notification and never runs.
 
-| Field           | Type                    | Description                                                                                                                   |
-| --------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `name`          | string                  | Copied into each message's `linterName`, and shown wherever one is listed. Also the key a user disables the provider by.      |
-| `scope`         | `"file"` \| `"project"` | Any other value is rejected. `"file"` scopes results to the linted buffer; `"project"` replaces the whole project result set. |
-| `lintsOnChange` | boolean                 | Required even when `false`. `false` means the linter runs on open and save only.                                              |
-| `grammarScopes` | string[]                | Matched against the scopes under the cursor. **`["*"]` matches every editor** — the scope list is always seeded with `"*"`.   |
-| `lint`          | `(editor) => messages`  | Returns `Message[]`, `null`, `undefined`, or a `Promise` of those.                                                            |
+| Field           | Type                               | Description                                                                                                                     |
+| --------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `name`          | string                             | Copied into each message's `linterName`, and shown wherever one is listed. Also the key a user disables the provider by.        |
+| `scope`         | `"file"` \| `"project"`            | Any other value is rejected. `"file"` scopes results to the linted buffer; `"project"` replaces the whole project result set.   |
+| `lintsOnChange` | boolean                            | Required even when `false`. Controls change-triggered runs; manual requests, saves, opens and grammar changes can still run it. |
+| `grammarScopes` | string[]                           | Matched against the scopes under the cursor. **`["*"]` matches every editor** — the scope list is always seeded with `"*"`.     |
+| `lint`          | `(editor, { signal }) => messages` | Returns `Message[]`, `null`, `undefined`, or a `Promise` of those. Receives a request-owned cancellation signal.                |
 
 A message. These four are required:
 
@@ -48,11 +48,11 @@ A message. These four are required:
 | `location.file`     | string                                           | Absolute path. May be replaced by `location.buffer` — see below.       |
 | `location.position` | Range-compatible                                 | `[[row, column], [row, column]]` or a `Range`. Must not contain `NaN`. |
 
-| Field             | Type         | Description                                                                                  |
-| ----------------- | ------------ | -------------------------------------------------------------------------------------------- |
-| `location.buffer` | `TextBuffer` | The buffer the message is about, **instead of** `location.file` when the buffer has no path. |
+| Field             | Type         | Description                                                                                                    |
+| ----------------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
+| `location.buffer` | `TextBuffer` | The buffer the message is about, including a named buffer. Its path is used when no explicit file is supplied. |
 
-A buffer that has never been saved has no path, so a message about one names the buffer. Exactly one of `file` and `buffer` is required; a location with neither is rejected. Everything works the same either way — markers, hover, code actions, `linter:next` — with two differences a UI listing it cannot avoid: it has no path to label the entry with, and navigating to it can only reveal it in an editor already showing that buffer rather than opening one. Once nothing is showing the buffer, there is nowhere to go, the same as for a file that has since been deleted.
+A location needs at least one of `file` and `buffer`; a location with neither is rejected. An explicit `file` is authoritative for path comparison and readout when both are present. A buffer-only location follows the buffer's current path without assigning an inferred `file` field. An unsaved buffer remains untitled, and navigation by buffer identity can reveal it only in an editor already showing it. Markers, hover, code actions and diagnostic navigation retain the buffer identity.
 
 And these are optional:
 
@@ -79,10 +79,10 @@ module.exports = {
       scope: "file",
       lintsOnChange: true,
       grammarScopes: ["source.js"],
-      async lint(editor) {
+      async lint(editor, { signal }) {
         const filePath = editor.getPath();
         if (!filePath) return null;
-        const findings = await runMyTool(filePath, editor.getText());
+        const findings = await runMyTool(filePath, editor.getText(), { signal });
         return findings.map((finding) => ({
           severity: "warning",
           excerpt: finding.message,
@@ -116,7 +116,11 @@ A `"project"`-scoped linter's results replace the entire project message set on 
 
 Files are skipped before `lint` is called when they match the `linter.ignoreGlob` setting or when the editor is a preview tab and `linter.lintPreviewTabs` is off. A buffer with no path cannot match the glob and is linted. Repository ignore rules are discovery policy, so they never suppress a document the user explicitly opened. A user can also disable an individual provider by `name` in the shared `linter:toggle-linter` list, which skips it without unregistering it, immediately removes its messages, and discards any run still in flight. Enabling it requests a fresh lint of open document editors.
 
-Message shape is validated on every run in dev mode, and always when the return value is not an array; in a release build a plausible array is trusted. Develop with `--dev` if you want the diagnostics.
+Message shape is validated on every run. Invalid output is discarded and reported as a failed provider outcome by the awaitable service.
+
+The supplied editor can be an open or registered document editor, or a private snapshot created by [`linter.lint`](linter.lint.md) for a named buffer with no editor. Read its text for current contents, including unsaved changes. A private snapshot has a read-only file source: saving, reloading or retargeting it is rejected, and mutating its contents cancels the request. Messages naming that private buffer are remapped to the caller's original buffer before publication.
+
+Use the second argument's `signal` to stop external work when its input changes, a newer request supersedes it, the caller aborts, the provider is removed or disabled, or the package deactivates. The hub cancels promptly and suppresses late results even when a provider ignores the signal; stopping a subprocess or releasing provider-owned resources is the provider's responsibility. Each provider run has a 30-second deadline. File runs are ordered per original buffer, while project runs share the provider's project ordering. Requests waiting for grammar readiness preserve their original arrival order.
 
 The hub normalizes what you return **in place**: positions become `Range` and `Point` instances, including local ranges in `relatedInformation`, `linterName` is filled in from `name`, `tags` is reduced to the known values in a fixed order (and dropped when none survive), and a stable key is attached. Do not assume the objects you returned stay untouched, and do not hand out shared or frozen objects. The key includes `code`, `source` and related messages and destinations; rebuilding equivalent metadata keeps the existing message identity, while changing a related location refreshes it.
 
@@ -140,7 +144,7 @@ Each `relatedInformation` entry contains a string `message` and exactly one of `
 
 The severity and tag vocabularies follow the LSP diagnostic model — `severity` mirrors `DiagnosticSeverity` (`error` 1, `warning` 2, `info` 3, `hint` 4) and `tags` mirrors `DiagnosticTag` — and both sets are open-ended. A consumer must supply its own default for a value it does not recognize rather than assume a fixed set of keys, and should treat an unknown severity as the lowest precedence.
 
-If `lint` throws or rejects, the error is logged and raised as a notification, deduplicated per linter so one broken provider cannot flood the user.
+If `lint` throws, rejects or times out, the error is logged and raised as a notification, deduplicated per linter so one broken provider cannot flood the user. The awaitable service reports a failed provider outcome with a reason and optional error text; a `null` or `undefined` return instead reports `unchanged` and preserves the previous message set. Returning `[]` reports a successful publication that clears it.
 
 ## Failure modes
 
@@ -156,7 +160,7 @@ Everything _before_ that point is still silent: a misspelled `linter.provider`, 
 
 ## Teardown
 
-`consumeLinter` returns a `Disposable` that removes your linters and their messages, so a linter object needs no `dispose` method. To retract messages while staying registered, return `[]` from the next `lint`.
+`consumeLinter` returns a generation-bound `Disposable` that removes your linters and their messages and cancels pending runs. Disposing an old edge after reactivation does not unregister a replacement from the new generation. A linter object needs no `dispose` method; release provider-owned work when its run signal aborts. To retract messages while staying registered, return `[]` from the next `lint`.
 
 ## Versioning
 

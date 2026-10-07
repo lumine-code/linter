@@ -225,6 +225,179 @@ describe("lib/validate", () => {
       expect(Validate.messages("my-linter", [good])).toBe(true);
     });
 
+    it("rejects missing or primitive message entries without throwing", () => {
+      for (const entry of [null, undefined, 1, "message", true, [], () => {}]) {
+        expect(() => Validate.messages("spec", [entry])).not.toThrow();
+        expect(Validate.messages("spec", [entry])).toBeFalse();
+      }
+      const sparse = new Array(2);
+      expect(() => Validate.messages("spec", sparse)).not.toThrow();
+      expect(Validate.messages("spec", sparse)).toBeFalse();
+    });
+
+    it("rejects proxy batches and proxy entries before inspecting provider traps", () => {
+      const trap = jasmine.createSpy("get").and.throwError("Do not inspect provider proxy");
+      const batch = new Proxy([good], { get: trap });
+      const entry = new Proxy(good, { get: trap });
+      expect(() => Validate.messages("spec", batch)).not.toThrow();
+      expect(Validate.messages("spec", batch)).toBeFalse();
+      expect(() => Validate.messages("spec", [entry])).not.toThrow();
+      expect(Validate.messages("spec", [entry])).toBeFalse();
+      expect(trap).not.toHaveBeenCalled();
+      for (const target of [[good], good]) {
+        const revoked = Proxy.revocable(target, {});
+        revoked.revoke();
+        const result = Array.isArray(target) ? revoked.proxy : [revoked.proxy];
+        expect(() => Validate.messages("spec", result)).not.toThrow();
+        expect(Validate.messages("spec", result)).toBeFalse();
+      }
+    });
+
+    it("validates array entries without trusting an overridden iterator or throwing index getter", () => {
+      const disguised = [null];
+      disguised[Symbol.iterator] = function* () {
+        yield good;
+      };
+      expect(Validate.messages("spec", disguised)).toBeFalse();
+      const unreadable = [good];
+      Object.defineProperty(unreadable, "0", {
+        get() {
+          throw new Error("Cannot read result");
+        },
+      });
+      expect(() => Validate.messages("spec", unreadable)).not.toThrow();
+      expect(Validate.messages("spec", unreadable)).toBeFalse();
+      for (const field of ["relatedInformation", "solutions", "tags"]) {
+        const disguisedMetadata = [null];
+        disguisedMetadata[Symbol.iterator] = function* () {};
+        expect(Validate.messages("spec", [{ ...good, [field]: disguisedMetadata }])).toBeFalse();
+      }
+    });
+
+    it("contains throwing getters on every diagnostic field", () => {
+      for (const field of [
+        "reference",
+        "location",
+        "severity",
+        "excerpt",
+        "code",
+        "source",
+        "relatedInformation",
+        "solutions",
+        "tags",
+        "url",
+        "icon",
+        "description",
+        "linterName",
+      ]) {
+        const entry = { ...good };
+        Object.defineProperty(entry, field, {
+          get() {
+            throw new Error(`Cannot read ${field}`);
+          },
+        });
+        expect(() => Validate.messages("spec", [entry])).not.toThrow();
+        expect(Validate.messages("spec", [entry])).toBeFalse();
+      }
+    });
+
+    it("contains nested location, reference and coordinate access failures", () => {
+      const throwing = (field, source) =>
+        Object.defineProperty({ ...source }, field, {
+          get() {
+            throw new Error(`Cannot read ${field}`);
+          },
+        });
+      for (const entry of [
+        { ...good, location: throwing("file", good.location) },
+        { ...good, location: throwing("buffer", good.location) },
+        { ...good, location: throwing("position", good.location) },
+        { ...good, location: { ...good.location, position: throwing("start", { end: [0, 1] }) } },
+        {
+          ...good,
+          location: { ...good.location, position: [throwing("row", { column: 0 }), [0, 1]] },
+        },
+        { ...good, reference: throwing("position", { file: "/reference.js" }) },
+        { ...good, reference: { file: "/reference.js", position: throwing("column", { row: 0 }) } },
+      ]) {
+        expect(() => Validate.messages("spec", [entry])).not.toThrow();
+        expect(Validate.messages("spec", [entry])).toBeFalse();
+      }
+    });
+
+    it("rejects malformed primary ranges without parsing missing coordinates as zero", () => {
+      for (const position of [
+        null,
+        {},
+        [],
+        [[0, 0]],
+        [[0], [0, 1]],
+        [
+          [0, 0],
+          [0, "1"],
+        ],
+        [
+          [-1, 0],
+          [0, 1],
+        ],
+        [
+          [0, 0],
+          [NaN, 1],
+        ],
+      ]) {
+        const entry = { ...good, location: { ...good.location, position } };
+        expect(() => Validate.messages("spec", [entry])).not.toThrow();
+        expect(Validate.messages("spec", [entry])).toBeFalse();
+      }
+      expect(
+        Validate.messages("spec", [
+          {
+            ...good,
+            location: {
+              ...good.location,
+              position: [
+                [0, 0],
+                [0, Infinity],
+              ],
+            },
+          },
+        ]),
+      ).toBeTrue();
+    });
+
+    it("rejects malformed solution and reference shapes before normalization", () => {
+      for (const solutions of [
+        null,
+        {},
+        [null],
+        [{}],
+        [{ position: good.location.position }],
+        [{ position: [], replaceWith: "fixed" }],
+      ]) {
+        const entry = { ...good, solutions };
+        expect(() => Validate.messages("spec", [entry])).not.toThrow();
+        expect(Validate.messages("spec", [entry])).toBeFalse();
+      }
+      for (const reference of [null, [], {}, { file: "/other", position: [0] }]) {
+        expect(() => Validate.messages("spec", [{ ...good, reference }])).not.toThrow();
+        expect(Validate.messages("spec", [{ ...good, reference }])).toBeFalse();
+      }
+      expect(
+        Validate.messages("spec", [
+          { ...good, solutions: [{ position: good.location.position, replaceWith: "fixed" }] },
+        ]),
+      ).toBeTrue();
+    });
+
+    it("warns once for a batch and lists each malformed field once", () => {
+      const entries = [null, null, { ...good, excerpt: 1 }, { ...good, excerpt: 2 }];
+      expect(Validate.messages("spec", entries)).toBeFalse();
+      expect(lumine.notifications.addWarning).toHaveBeenCalledTimes(1);
+      const detail = lumine.notifications.addWarning.calls.mostRecent().args[1].detail;
+      expect(detail.match(/Message must be an object/g).length).toBe(1);
+      expect(detail.match(/Message.excerpt must be a string/g).length).toBe(1);
+    });
+
     it("rejects a non-array result", () => {
       expect(Validate.messages("my-linter", null)).toBe(false);
     });

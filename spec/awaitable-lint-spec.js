@@ -26,6 +26,7 @@ describe("awaitable linter passes", () => {
   };
 
   beforeEach(() => {
+    jasmine.useRealClock();
     lumine.config.setSchema("linter", {
       type: "object",
       properties: require("../package.json").configSchema,
@@ -66,8 +67,9 @@ describe("awaitable linter passes", () => {
       });
     const pass = instance.lintEditor(editor);
     expect(messages()).toEqual([]);
+    await conditionPromise(() => resolve);
     resolve();
-    expect(await pass).toBeTrue();
+    expect((await pass).status).toBe("completed");
     expect(messages().map((entry) => entry.excerpt)).toEqual(["fresh"]);
     editor.destroy();
   });
@@ -76,7 +78,7 @@ describe("awaitable linter passes", () => {
     const original = buffer();
     const items = lumine.workspace.getPaneItems().slice();
     const originalRefcount = original.refcount;
-    expect(await instance.lintBuffer(original)).toBeTrue();
+    expect((await instance.lintBuffer(original)).status).toBe("completed");
     expect(lumine.workspace.getPaneItems()).toEqual(items);
     expect(original.refcount).toBe(originalRefcount);
     expect(original.isDestroyed()).toBeFalse();
@@ -93,7 +95,7 @@ describe("awaitable linter passes", () => {
     const editor = await lumine.workspace.open();
     editor.getBuffer().setPath(filePath);
     editor.setText("open");
-    expect(await instance.lintBuffer(editor.getBuffer())).toBeTrue();
+    expect((await instance.lintBuffer(editor.getBuffer())).status).toBe("completed");
     expect(targets).toEqual([editor]);
     expect(editor.isDestroyed()).toBeFalse();
     editor.destroy();
@@ -108,9 +110,9 @@ describe("awaitable linter passes", () => {
     const second = instance.lintBuffer(original);
     await conditionPromise(() => pending.length === 2);
     pending[1].resolve([message(pending[1].editor, "new")]);
-    await second;
+    expect((await second).status).toBe("completed");
     pending[0].resolve([message(pending[0].editor, "old")]);
-    await first;
+    expect((await first).status).toBe("cancelled");
     expect(messages().map((entry) => entry.excerpt)).toEqual(["new"]);
     expect(pending.every((entry) => entry.editor.isDestroyed())).toBeTrue();
     original.destroy();
@@ -132,10 +134,9 @@ describe("awaitable linter passes", () => {
       if (change === "destroy") {
         original.destroy();
         expect(target.isDestroyed()).toBeTrue();
-        expect(instance.snapshotEditors.size).toBe(0);
       }
       resolve([message(target, "stale")]);
-      await pass;
+      expect((await pass).status).toBe("cancelled");
       expect(messages()).toEqual([]);
       expect(target.isDestroyed()).toBeTrue();
       if (!original.isDestroyed()) original.destroy();
@@ -147,12 +148,18 @@ describe("awaitable linter passes", () => {
     editor.getBuffer().setPath(filePath);
     instance.registryEditorsInit();
     instance.registryEditors.disableTextEditorBuffer(editor);
-    expect(await instance.lintBuffer(editor.getBuffer())).toBeFalse();
+    const disabled = await instance.lintBuffer(editor.getBuffer());
+    expect(disabled.status).toBe("skipped");
+    expect(disabled.reason).toBe("disabled");
     const original = buffer();
     lumine.config.set("linter.ignoreGlob", "**/awaitable.py");
-    expect(await instance.lintBuffer(original)).toBeFalse();
+    const ignored = await instance.lintBuffer(original);
+    expect(ignored.status).toBe("skipped");
+    expect(ignored.reason).toBe("ignored");
     original.setPath(null);
-    expect(await instance.lintBuffer(original)).toBeFalse();
+    const pathless = await instance.lintBuffer(original);
+    expect(pathless.status).toBe("skipped");
+    expect(pathless.reason).toBe("no-path");
     expect(targets).toEqual([]);
     original.destroy();
     editor.destroy();
@@ -166,7 +173,11 @@ describe("awaitable linter passes", () => {
       targets.push(editor);
       throw new Error("provider failed");
     };
-    expect(await instance.lintBuffer(original)).toBeTrue();
+    const result = await instance.lintBuffer(original);
+    expect(result.status).toBe("failed");
+    expect(result.reason).toBe("provider-error");
+    expect(result.providers[0].status).toBe("failed");
+    expect(result.providers[0].error).toBe("provider failed");
     expect(targets[0].isDestroyed()).toBeTrue();
     expect(original.isDestroyed()).toBeFalse();
     original.destroy();
@@ -184,10 +195,11 @@ describe("awaitable linter passes", () => {
     await conditionPromise(() => resolve);
     instance.dispose();
     expect(target.isDestroyed()).toBeTrue();
-    expect(instance.snapshotEditors.size).toBe(0);
     resolve([message(target, "obsolete")]);
-    expect(await pass).toBeFalse();
-    expect(await instance.lintBuffer(original)).toBeFalse();
+    expect((await pass).status).toBe("cancelled");
+    const stale = await instance.lintBuffer(original);
+    expect(stale.status).toBe("cancelled");
+    expect(stale.reason).toBe("disposed");
     expect(messages()).toEqual([]);
     expect(target.isDestroyed()).toBeTrue();
     original.destroy();
@@ -204,21 +216,17 @@ describe("awaitable linter passes", () => {
       spyOn(provider, "lint").and.callThrough();
       spyOn(lumine.workspace, "buildTextEditor").and.callFake((options) => {
         target = build(options);
-        const setGrammar = target.setGrammar.bind(target);
-        spyOn(target, "setGrammar").and.callFake((grammar) => {
-          setGrammar(grammar);
-          Object.defineProperty(target.getBuffer().getLanguageMode(), "ready", { value: ready });
-        });
+        targets.push(target);
+        spyOn(target, "whenGrammarSettled").and.returnValue(ready);
         return target;
       });
       const pass = instance.lintBuffer(original);
-      expect(instance.snapshotEditors.size).toBe(1);
+      expect(target.isDestroyed()).toBeFalse();
       if (teardown === "package disposal") instance.dispose();
       else original.destroy();
       expect(target.isDestroyed()).toBeTrue();
-      expect(instance.snapshotEditors.size).toBe(0);
       resolveReady();
-      expect(await pass).toBeFalse();
+      expect((await pass).status).toBe("cancelled");
       expect(provider.lint).not.toHaveBeenCalled();
       expect(messages()).toEqual([]);
     });
@@ -236,9 +244,10 @@ describe("awaitable linter passes", () => {
         resolve = () => done([message(target, "independent")]);
       });
     const pass = other.lint({ editor });
+    await conditionPromise(() => resolve);
     instance.deleteLinter(provider);
     resolve();
-    await pass;
+    expect((await pass).status).toBe("completed");
     expect(received.length).toBe(1);
     expect(Object.keys(provider).sort()).toEqual([
       "grammarScopes",
@@ -259,8 +268,10 @@ describe("awaitable linter passes", () => {
     Main.activate();
     const editor = await lumine.workspace.open();
     try {
-      expect(await old.lintEditor(editor)).toBeFalse();
-      expect(await Main.provideLinterLint().lintEditor(editor)).toBeTrue();
+      const stale = await old.lintEditor(editor);
+      expect(stale.status).toBe("cancelled");
+      expect(stale.reason).toBe("disposed");
+      expect((await Main.provideLinterLint().lintEditor(editor)).status).toBe("completed");
     } finally {
       Main.deactivate();
       editor.destroy();

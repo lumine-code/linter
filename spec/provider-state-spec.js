@@ -227,6 +227,7 @@ describe("linter provider message state", () => {
     let resolveLint;
     provider.lint = () => new Promise((resolve) => (resolveLint = resolve));
     const pending = instance.registryLinters.lint({ editor });
+    await conditionPromise(() => typeof resolveLint === "function");
 
     lumine.config.set("linter.disabledProviders", [provider.name]);
     expect(visibleExcerpts()).toEqual([]);
@@ -263,6 +264,7 @@ describe("linter provider message state", () => {
     });
     instance.addLinter(provider);
     const oldRun = instance.registryLinters.lint({ editor: openEditor });
+    await conditionPromise(() => typeof resolveOld === "function");
     lumine.config.set("linter.disabledProviders", [provider.name]);
     provider.lint = () => [message("new generation")];
     lumine.config.set("linter.disabledProviders", []);

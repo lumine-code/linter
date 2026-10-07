@@ -131,6 +131,7 @@ describe("lib/linter-registry", () => {
     linter.lint = () => new Promise((resolve) => resolvers.push(resolve));
 
     const oldRun = registry.lint({ editor });
+    await conditionPromise(() => resolvers.length === 1);
     const newRun = registry.lint({ editor });
     await conditionPromise(() => resolvers.length === 2);
     resolvers[0]([messageFor(editor, "old")]);
@@ -152,6 +153,7 @@ describe("lib/linter-registry", () => {
     linter.lint = () => new Promise((resolve) => resolvers.push(resolve));
 
     const oldRun = registry.lint({ editor });
+    await conditionPromise(() => resolvers.length === 1);
     registry.deleteLinter(linter);
     registry.addLinter(linter);
     const newRun = registry.lint({ editor });
@@ -174,6 +176,7 @@ describe("lib/linter-registry", () => {
     linter.lint = () => new Promise((resolve) => resolvers.push(resolve));
 
     const oldRun = registry.lint({ editor });
+    await conditionPromise(() => resolvers.length === 1);
     registry.addLinter(linter);
     const newRun = registry.lint({ editor });
     await conditionPromise(() => resolvers.length === 2);

@@ -28,6 +28,7 @@ describe("buffer diagnostic paths across lint and MCP services", () => {
   const read = (args) => Main.provideMcpTools()[0].execute(args);
 
   beforeEach(() => {
+    jasmine.useRealClock();
     lumine.config.setSchema("linter", {
       type: "object",
       properties: require("../package.json").configSchema,
@@ -66,7 +67,7 @@ describe("buffer diagnostic paths across lint and MCP services", () => {
 
   it("returns freshly linted named-buffer diagnostics through an MCP filePath filter", async () => {
     const buffer = namedBuffer();
-    expect(await Main.provideLinterLint().lintBuffer(buffer)).toBeTrue();
+    expect((await Main.provideLinterLint().lintBuffer(buffer)).status).toBe("completed");
     const result = read({ filePath });
     expect(result.messages.length).toBe(1);
     expect(result.messages[0]?.file).toBe(filePath);
@@ -85,7 +86,7 @@ describe("buffer diagnostic paths across lint and MCP services", () => {
       message.location.file = explicit;
       return [message];
     };
-    expect(await Main.provideLinterLint().lintBuffer(buffer)).toBeTrue();
+    expect((await Main.provideLinterLint().lintBuffer(buffer)).status).toBe("completed");
     expect(read({ filePath }).messages).toEqual([]);
     const result = read({ filePath: explicit });
     expect(result.messages.length).toBe(1);
@@ -98,12 +99,12 @@ describe("buffer diagnostic paths across lint and MCP services", () => {
     const buffer = namedBuffer();
     let message;
     provider.lint = (editor) => [(message ||= diagnostic(editor.getBuffer()))];
-    expect(await Main.provideLinterLint().lintBuffer(buffer)).toBeTrue();
+    expect((await Main.provideLinterLint().lintBuffer(buffer)).status).toBe("completed");
     const renamed = path.join(__dirname, "renamed-diagnostic.py");
     buffer.setPath(renamed);
     expect(read({ filePath }).messages).toEqual([]);
     expect(read({ filePath: renamed }).messages.map((entry) => entry.file)).toEqual([renamed]);
-    expect(await Main.provideLinterLint().lintBuffer(buffer)).toBeTrue();
+    expect((await Main.provideLinterLint().lintBuffer(buffer)).status).toBe("completed");
     expect(message.location.file).toBeUndefined();
     expect(message.location.buffer).toBe(buffer);
     expect(message.location.normalizedFile).toBe(hub.normalizePath(renamed));
@@ -115,7 +116,7 @@ describe("buffer diagnostic paths across lint and MCP services", () => {
     const editor = await lumine.workspace.open();
     editors.push(editor);
     editor.setText("word");
-    expect(await Main.provideLinterLint().lintEditor(editor)).toBeTrue();
+    expect((await Main.provideLinterLint().lintEditor(editor)).status).toBe("completed");
     const message = hub.getMessages()[0];
     expect(message.location.buffer).toBe(editor.getBuffer());
     expect(message.location.file).toBeUndefined();

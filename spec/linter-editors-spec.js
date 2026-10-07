@@ -1,5 +1,5 @@
-const Main = require("../lib/main");
-const EditorRegistry = require("../lib/editor-registry");
+let Main;
+let EditorRegistry;
 
 // Only pane items are linted on their own. A package builds editors of its own
 // to render a diff, a patch preview or a dock's input field with, and none of
@@ -7,6 +7,10 @@ const EditorRegistry = require("../lib/editor-registry");
 // is registered by its owner through the `linter.editors` service. These specs
 // pin both halves of that contract.
 describe("lib/editor-registry discovery", () => {
+  beforeEach(() => {
+    EditorRegistry = require("../lib/editor-registry");
+  });
+
   it("observes pane items, not the editors packages register with lumine.textEditors", async () => {
     lumine.config.set("linter.lintOnOpen", false);
     const registry = new EditorRegistry();
@@ -22,6 +26,96 @@ describe("lib/editor-registry discovery", () => {
     embedded.destroy();
     paneEditor.destroy();
     registry.dispose();
+  });
+
+  it("restores an owned embedded editor after disabling and enabling its buffer", () => {
+    lumine.config.set("linter.lintOnOpen", false);
+    const registry = new EditorRegistry();
+    const embedded = lumine.workspace.buildTextEditor();
+    try {
+      registry.createFromTextEditor(embedded);
+      registry.disableTextEditorBuffer(embedded);
+      expect(registry.get(embedded)).toBeUndefined();
+      registry.enableTextEditorBuffer(embedded);
+      expect(registry.get(embedded)).toBeDefined();
+    } finally {
+      embedded.destroy();
+      registry.dispose();
+    }
+  });
+
+  it("keeps each explicit lease through pause and releases only its own resumed context", () => {
+    lumine.config.set("linter.lintOnOpen", false);
+    const registry = new EditorRegistry();
+    const embedded = lumine.workspace.buildTextEditor();
+    const first = registry.registerEditor(embedded);
+    const second = registry.registerEditor(embedded);
+    try {
+      const beforePause = registry.get(embedded);
+      registry.disableTextEditorBuffer(embedded);
+      expect(registry.get(embedded)).toBeUndefined();
+      first.dispose();
+      registry.enableTextEditorBuffer(embedded);
+      expect(registry.get(embedded)).toBeDefined();
+      expect(registry.get(embedded)).not.toBe(beforePause);
+      second.dispose();
+      expect(registry.get(embedded)).toBeUndefined();
+    } finally {
+      first.dispose();
+      second.dispose();
+      embedded.destroy();
+      registry.dispose();
+    }
+  });
+
+  it("remembers an explicit lease acquired while its buffer is paused", () => {
+    lumine.config.set("linter.lintOnOpen", false);
+    const registry = new EditorRegistry();
+    const embedded = lumine.workspace.buildTextEditor();
+    registry.disableTextEditorBuffer(embedded);
+    const registration = registry.registerEditor(embedded);
+    try {
+      expect(registry.get(embedded)).toBeUndefined();
+      registry.enableTextEditorBuffer(embedded);
+      expect(registry.get(embedded)).toBeDefined();
+      registration.dispose();
+      expect(registry.get(embedded)).toBeUndefined();
+    } finally {
+      registration.dispose();
+      embedded.destroy();
+      registry.dispose();
+    }
+  });
+
+  it("retires shared ownership once when the editor itself is destroyed", () => {
+    lumine.config.set("linter.lintOnOpen", false);
+    const registry = new EditorRegistry();
+    const embedded = lumine.workspace.buildTextEditor();
+    const destroyed = [];
+    registry.observe((linter) => linter.onDidDestroy(() => destroyed.push(linter)));
+    const first = registry.registerEditor(embedded);
+    const second = registry.registerEditor(embedded);
+    registry.createFromTextEditor(embedded);
+    embedded.destroy();
+    expect(registry.get(embedded)).toBeUndefined();
+    expect(destroyed.length).toBe(1);
+    expect(() => first.dispose()).not.toThrow();
+    expect(() => second.dispose()).not.toThrow();
+    expect(() => registry.dispose()).not.toThrow();
+    expect(destroyed.length).toBe(1);
+  });
+
+  it("keeps retired service edges inert after the registry is disposed", () => {
+    lumine.config.set("linter.lintOnOpen", false);
+    const registry = new EditorRegistry();
+    const embedded = lumine.workspace.buildTextEditor();
+    const registration = registry.registerEditor(embedded);
+    registry.dispose();
+    expect(registry.get(embedded)).toBeUndefined();
+    expect(() => registration.dispose()).not.toThrow();
+    expect(() => registry.registerEditor(embedded).dispose()).not.toThrow();
+    expect(registry.get(embedded)).toBeUndefined();
+    embedded.destroy();
   });
 });
 
@@ -63,6 +157,7 @@ describe("the linter.editors service", () => {
     lumine.config.set("linter.lintOnOpen", true);
     lintedEditors = [];
     renders = [];
+    Main = require("../lib/main");
     Main.activate();
   });
 
@@ -114,6 +209,57 @@ describe("the linter.editors service", () => {
 
     expect(() => registration.dispose()).not.toThrow();
     expect(lintedEditors).toEqual([]);
+  });
+
+  it("keeps a detached editor registered while a second service edge still owns it", async () => {
+    let hub;
+    const ui = Main.consumeLinterUI({ name: "lease-spec-ui", attach: (value) => (hub = value) });
+    const consumed = Main.consumeLinter(provider);
+    const register = Main.provideLinterEditors();
+    editor = lumine.workspace.buildTextEditor();
+    editor.setText("word\n");
+    const first = register(editor);
+    const second = register(editor);
+    try {
+      await Main.provideLinterLint().lintEditor(editor);
+      expect(hub.getMessages().map((entry) => entry.excerpt)).toEqual(["registered"]);
+      first.dispose();
+      expect(hub.getMessages().map((entry) => entry.excerpt)).toEqual(["registered"]);
+      second.dispose();
+      expect(hub.getMessages()).toEqual([]);
+    } finally {
+      first.dispose();
+      second.dispose();
+      consumed.dispose();
+      ui.dispose();
+    }
+  });
+
+  it("keeps a pane editor's automatic registration after its explicit edge is disposed", async () => {
+    await lumine.packages.activatePackage("language-javascript");
+    let hub;
+    const ui = Main.consumeLinterUI({
+      name: "pane-lease-spec-ui",
+      attach: (value) => (hub = value),
+    });
+    const consumed = Main.consumeLinter(provider);
+    editor = await lumine.workspace.open();
+    editor.setText("word\n");
+    await Main.provideLinterLint().lintEditor(editor);
+    const explicit = Main.provideLinterEditors()(editor);
+    try {
+      explicit.dispose();
+      expect(hub.getMessages().map((entry) => entry.excerpt)).toEqual(["registered"]);
+      const before = lintedEditors.length;
+      editor.setGrammar(lumine.grammars.grammarForScopeName("source.js"));
+      await editor.whenGrammarSettled();
+      await flushMicrotasks();
+      expect(lintedEditors.length).toBeGreaterThan(before);
+    } finally {
+      explicit.dispose();
+      consumed.dispose();
+      ui.dispose();
+    }
   });
 
   // `lint: false` registers an editor for rendering only: the buffer is
