@@ -217,13 +217,13 @@ describe("awaitable linter passes", () => {
   it("keeps a service handle tied to the generation that supplied it", async () => {
     const Main = require("../lib/main");
     Main.activate();
-    const old = Main.provideLint();
+    const old = Main.provideLinterLint();
     Main.deactivate();
     Main.activate();
     const editor = await lumine.workspace.open();
     try {
       expect(await old.lintEditor(editor)).toBeFalse();
-      expect(await Main.provideLint().lintEditor(editor)).toBeTrue();
+      expect(await Main.provideLinterLint().lintEditor(editor)).toBeTrue();
     } finally {
       Main.deactivate();
       editor.destroy();

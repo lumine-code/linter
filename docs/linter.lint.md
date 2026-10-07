@@ -2,12 +2,12 @@
 
 Await a lint pass for a text editor or a named buffer without opening a tab.
 
-| Field       | Value                                   |
-| ----------- | --------------------------------------- |
-| Version     | `1.0.0`                                 |
-| Provided by | `provideLint()` returning a lint handle |
-| Consumed by | Packages requesting fresh diagnostics   |
-| Owner       | `linter`                                |
+| Field       | Value                                         |
+| ----------- | --------------------------------------------- |
+| Version     | `1.0.0`                                       |
+| Provided by | `provideLinterLint()` returning a lint handle |
+| Consumed by | Packages requesting fresh diagnostics         |
+| Owner       | `linter`                                      |
 
 ## Registration
 
@@ -15,7 +15,7 @@ Await a lint pass for a text editor or a named buffer without opening a tab.
 {
   "consumedServices": {
     "linter.lint": {
-      "versions": { "^1.0.0": "consumeLint" }
+      "versions": { "^1.0.0": "consumeLinterLint" }
     }
   }
 }
@@ -40,7 +40,7 @@ Both methods await every matching classic linter provider, including providers t
 const { Disposable } = require("lumine");
 
 module.exports = {
-  consumeLint(lint) {
+  consumeLinterLint(lint) {
     this.lint = lint;
     return new Disposable(() => {
       if (this.lint === lint) this.lint = null;
