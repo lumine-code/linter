@@ -262,6 +262,61 @@ describe("the linter.editors service", () => {
     }
   });
 
+  it("retires a pending run when the last detached registration is released", async () => {
+    let hub;
+    let release;
+    let signal;
+    const ui = Main.consumeLinterUI({
+      name: "pending-lease-spec-ui",
+      attach: (value) => (hub = value),
+    });
+    const consumed = Main.consumeLinter({
+      ...provider,
+      lint: (target, options) => {
+        signal = options.signal;
+        return new Promise((resolve) => {
+          release = () =>
+            resolve([
+              {
+                severity: "hint",
+                excerpt: "retired registration",
+                location: {
+                  buffer: target.getBuffer(),
+                  position: [
+                    [0, 0],
+                    [0, 1],
+                  ],
+                },
+              },
+            ]);
+        });
+      },
+    });
+    editor = lumine.workspace.buildTextEditor();
+    editor.setText("word\n");
+    const registration = Main.provideLinterEditors()(editor);
+    const pass = Main.provideLinterLint().lintEditor(editor);
+    let settled = false;
+    pass.then(() => (settled = true));
+    await conditionPromise(() => release);
+    try {
+      registration.dispose();
+      await flushMicrotasks();
+      expect(settled).toBe(true);
+      expect(signal.aborted).toBe(true);
+      expect(editor.isDestroyed()).toBe(false);
+      release();
+      await pass;
+      expect(hub.getMessages()).toEqual([]);
+    } finally {
+      release();
+      await pass;
+      registration.dispose();
+      consumed.dispose();
+      ui.dispose();
+    }
+  });
+
   // `lint: false` registers an editor for rendering only: the buffer is
   // patched so projected messages have marker layers to land on, but no
   // provider ever runs on the editor itself. This is the mode for a notebook

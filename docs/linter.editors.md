@@ -29,9 +29,9 @@ In your `package.json`:
 
 The consumed value is a single function.
 
-| Function                     | Returns      | Description                                                                |
-| ---------------------------- | ------------ | -------------------------------------------------------------------------- |
-| `register(editor, options?)` | `Disposable` | Lints the `TextEditor` from now on. Dispose to stop and drop its messages. |
+| Function                     | Returns      | Description                                                 |
+| ---------------------------- | ------------ | ----------------------------------------------------------- |
+| `register(editor, options?)` | `Disposable` | Acquires a registration lease for linting the `TextEditor`. |
 
 Options — all optional:
 
@@ -54,7 +54,9 @@ module.exports = {
 
 ## Behavior
 
-A registered editor behaves exactly like a pane item: providers whose `grammarScopes` match run on open, save, text change and grammar change, its messages appear on its markers and in every registered UI, and a buffer with no path is carried as [`location.buffer`](linter.provider.md). Registering an editor twice is a no-op, and registering one that is also a pane item changes nothing — it was already linted.
+A registered editor behaves exactly like a pane item: providers whose `grammarScopes` match run on open, save, text change and grammar change, its messages appear on its markers and in every registered UI, and a buffer with no path is carried as [`location.buffer`](linter.provider.md). Each registration acquires an independent lease on one linting context. Repeated registrations create no duplicate runs or subscriptions; disposing one lease preserves the remaining owners. Pane discovery owns its automatic registration independently of explicit service leases.
+
+Pausing linting disables provider work for the buffer while preserving every registration owner. Enabling the buffer restores its owned pane and embedded editors. An explicit awaited pass follows the same disabled-buffer policy.
 
 With `lint: false` no provider ever runs on the editor and nothing new appears in the panel; the registration only makes the editor able to **show** messages. That is for an editor whose content is checked through another route — a notebook cell, whose diagnostics arrive against the notebook and are projected onto the cell by a [`linter.adapter`](linter.adapter.md). Without the registration those projections have nowhere to land, since only patched buffers carry marker layers. The decorations retire with the editor on their own, so in this mode the returned `Disposable` is inert.
 
@@ -62,7 +64,7 @@ Register only an editor whose content a person writes. An editor rendering deriv
 
 ## Teardown
 
-Dispose the returned `Disposable` when the editor goes away or stops being a document; its messages are removed with it. An editor that is destroyed cleans up by itself, and disposing after that is allowed and does nothing.
+Dispose the returned `Disposable` when this service edge stops owning the editor. Releasing the last detached-editor lease removes its file messages and cancels in-flight work; a late result cannot recreate the retired registration's diagnostics. An automatic pane registration or another explicit lease keeps its context alive. Destroying the editor retires every lease, and disposing an old lease afterwards is harmless. Registrations belong to the providing package generation and cannot remove a later generation's context.
 
 ## Versioning
 
