@@ -57,6 +57,8 @@ module.exports = {
 
 `lintBuffer` reuses an open editor for the buffer when available. Otherwise it builds a private snapshot editor containing the text, path and grammar, waits for its language mode, and destroys it after the providers settle. It never opens a pane item, retains or destroys the caller's buffer, or writes its text to disk. File results and request ordering belong to the caller's original buffer. Results from a detached snapshot whose original buffer changed or was destroyed are discarded. Destroying the original buffer removes its file results.
 
+Diagnostics located only by buffer use that buffer's current path for file filtering and readout, including after a rename. An explicit provider `location.file` remains authoritative. The inferred path is never assigned to `location.file`, and diagnostics for unsaved editors keep their buffer identity without an invented filename.
+
 ## Teardown
 
 A handle belongs to the package generation that provided it. After that generation deactivates, its methods return `false`; a stale handle cannot invoke a new generation. Consumers must dispose their service edge and stop using its handle.

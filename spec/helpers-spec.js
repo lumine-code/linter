@@ -210,7 +210,57 @@ describe("lib/helpers", () => {
       expect(message.location.normalizedFile).toBe(Helpers.normalizePath(file));
     });
 
-    it("has no path for a message that names a buffer instead", () => {
+    it("uses a named buffer's current path without assigning an explicit file", () => {
+      let file = "/named.py";
+      const buffer = { getPath: () => file };
+      const message = {
+        severity: "error",
+        excerpt: "x",
+        location: {
+          buffer,
+          position: [
+            [0, 0],
+            [0, 1],
+          ],
+        },
+      };
+      Helpers.normalizeMessages("spec", [message]);
+      expect(message.location.normalizedFile).toBe(Helpers.normalizePath(file));
+      expect(message.location.file).toBeUndefined();
+      expect(message.location.buffer).toBe(buffer);
+      expect(Helpers.messageSubject(message)).toBe(file);
+      const key = message.key;
+      Helpers.updateMessageKey(message);
+      expect(message.key).toBe(key);
+      file = "/renamed.py";
+      Helpers.normalizeMessages("spec", [message]);
+      expect(message.location.normalizedFile).toBe(Helpers.normalizePath(file));
+      expect(message.key).not.toBe(key);
+      expect(Helpers.messageSubject(message)).toBe(file);
+      expect(message.location.file).toBeUndefined();
+    });
+
+    it("keeps an explicit file authoritative over a named buffer", () => {
+      const file = "/explicit.py";
+      const message = {
+        severity: "error",
+        excerpt: "x",
+        location: {
+          file,
+          buffer: { getPath: () => "/buffer.py" },
+          position: [
+            [0, 0],
+            [0, 1],
+          ],
+        },
+      };
+      Helpers.normalizeMessages("spec", [message]);
+      expect(message.location.normalizedFile).toBe(Helpers.normalizePath(file));
+      expect(Helpers.getMessageFile(message)).toBe(file);
+      expect(Helpers.messageSubject(message)).toBe(file);
+    });
+
+    it("has no path for a buffer that has not been named", () => {
       const message = {
         severity: "error",
         excerpt: "x",
@@ -225,6 +275,8 @@ describe("lib/helpers", () => {
       Helpers.normalizeMessages("spec", [message]);
 
       expect(message.location.normalizedFile).toBeNull();
+      expect(Helpers.getMessageFile(message)).toBeNull();
+      expect(Helpers.messageSubject(message)).toBe("untitled");
     });
   });
 
