@@ -123,7 +123,7 @@
 }
 
 .linter-hover-item.hint {
-  --linter-hover-severity-color: var(--text-color-subtle);
+  --linter-hover-severity-color: var(--text-color-hint);
 }
 
 .linter-hover-icon {
