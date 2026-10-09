@@ -1,4 +1,4 @@
-const LinterRegistry = require("../lib/linter-registry");
+let LinterRegistry;
 
 describe("lib/linter-registry", () => {
   let registry;
@@ -18,6 +18,7 @@ describe("lib/linter-registry", () => {
   });
 
   beforeEach(() => {
+    LinterRegistry = require("../lib/linter-registry");
     // The registry reads these when it is constructed, and the schema that
     // supplies their defaults is only registered once the package activates.
     lumine.config.set("linter.lintOnChange", true);
