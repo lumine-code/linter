@@ -32,7 +32,7 @@ Commands available in `lumine-workspace`:
 - `linter:inspect`: show the message bubble at the cursor position,
 - `linter:next`: jump to the next linter message,
 - `linter:previous`: jump to the previous linter message,
-- `linter:clear`: clear linter messages for the current editor.
+- `linter:clear`: clear linter messages for the whole project.
 
 ## Customization
 

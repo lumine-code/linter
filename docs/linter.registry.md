@@ -43,19 +43,19 @@ type IndieConfig = {
 
 The delegate:
 
-| Member                            | Description                                                                                |
-| --------------------------------- | ------------------------------------------------------------------------------------------ |
-| `name`                            | The name you registered.                                                                   |
-| `setMessages(filePath, messages)` | Replaces the messages for one file. Every message's `location.file` must equal `filePath`. |
-| `setAllMessages(messages)`        | Replaces everything this delegate has published, re-bucketed by `location.file`.           |
-| `deleteFilePath(filePath)`        | Drops the messages for one file.                                                           |
-| `clearMessages()`                 | Drops all of them.                                                                         |
-| `getMessages()`                   | The delegate's current messages, flattened.                                                |
-| `onDidUpdate(callback)`           | Fires after each of the mutators above.                                                    |
-| `onDidDestroy(callback)`          | Fires when the delegate is disposed.                                                       |
-| `dispose()`                       | Unregisters the delegate and clears its messages.                                          |
+| Member                            | Description                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `name`                            | The name you registered.                                                                         |
+| `setMessages(filePath, messages)` | Replaces the messages for one file. Every message's resolved subject path must match `filePath`. |
+| `setAllMessages(messages)`        | Replaces everything this delegate has published, re-bucketed by its resolved subject path.       |
+| `deleteFilePath(filePath)`        | Drops the messages for one file.                                                                 |
+| `clearMessages()`                 | Drops all of them.                                                                               |
+| `getMessages()`                   | The delegate's current messages, flattened.                                                      |
+| `onDidUpdate(callback)`           | Fires after each of the mutators above.                                                          |
+| `onDidDestroy(callback)`          | Fires when the delegate is disposed.                                                             |
+| `dispose()`                       | Unregisters the delegate and clears its messages.                                                |
 
-Messages take the same shape as for [`linter.provider`](linter.provider.md): `severity`, `excerpt`, and `location` with `file` and `position` are required; `tags`, `description`, `solutions`, `reference`, `url`, `icon`, and `linterName` are optional.
+Messages take the same shape as for [`linter.provider`](linter.provider.md): `severity`, `excerpt`, and `location` with `position` and at least one of `file` or `buffer` are required; `tags`, `description`, `solutions`, `reference`, `url`, `icon`, and `linterName` are optional. An explicit file identifies the subject path; otherwise a named buffer supplies its current path. Buffer-only and path-only diagnostics for the same editor are both shown.
 
 ## Minimal example
 
@@ -96,7 +96,7 @@ The default `"touch"` retires a message as soon as an edit touches its inline ra
 
 `"never"` is for a source that owns complete snapshots, such as a language server. Its markers track buffer edits without absorbing text inserted at their boundaries, and remain visible until a later snapshot replaces or clears them. Such a producer must publish an empty array when a file has no diagnostics and clear its messages when the producer stops.
 
-`setMessages` throws if `filePath` is not a string or `messages` is not an array, and again if any message's `location.file` differs from `filePath` — the per-file bucket must be internally consistent. `setAllMessages` has no such constraint; it re-buckets by each message's own `location.file`.
+`setMessages` throws if `filePath` is not a string or `messages` is not an array, and again if any message's resolved subject path differs from `filePath` after filesystem normalization — the per-file bucket must be internally consistent. `setAllMessages` has no such constraint; it re-buckets by each message's own resolved subject path and can retain untitled buffer diagnostics.
 
 Messages are validated on every `setMessages`, and on `setAllMessages` only in dev mode or when the argument is not an array. Invalid messages raise `[Linter] Invalid Linter Result received` and the call is dropped, leaving the previous set in place.
 

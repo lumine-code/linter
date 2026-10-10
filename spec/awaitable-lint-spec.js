@@ -152,7 +152,8 @@ describe("awaitable linter passes", () => {
     expect(disabled.status).toBe("skipped");
     expect(disabled.reason).toBe("disabled");
     const original = buffer();
-    lumine.config.set("linter.ignoreGlob", "**/awaitable.py");
+    // Match this buffer even when the checkout itself is in a hidden directory.
+    lumine.config.set("linter.ignoreGlob", filePath.replace(/\\/g, "/"));
     const ignored = await instance.lintBuffer(original);
     expect(ignored.status).toBe("skipped");
     expect(ignored.reason).toBe("ignored");

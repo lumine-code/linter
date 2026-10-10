@@ -48,11 +48,23 @@ jobs:
     # the editor runtime (text-editor marker layers, the @lumine-code/etch view,
     # the core select-list dialog, and lumine.project.repositoryForPath),
     # so this is the single place they run in CI.
-    name: Lumine integration specs
-    runs-on: ubuntu-latest
+    name: Lumine integration specs on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
     env:
       LUMINE_JASMINE_REPORTER: list
+      LUMINE_HOME: ${{ github.workspace }}/.linter-runtime/home
+      LUMINE_DISABLE_SHELLING_OUT_FOR_ENVIRONMENT: "true"
+      TEMP: ${{ github.workspace }}/.linter-runtime/tmp
+      TMP: ${{ github.workspace }}/.linter-runtime/tmp
+      TMPDIR: ${{ github.workspace }}/.linter-runtime/tmp
     steps:
       - uses: actions/checkout@v7
         with:
@@ -66,7 +78,10 @@ jobs:
           node-version-file: lumine/.nvmrc
           cache: npm
           cache-dependency-path: lumine/package-lock.json
+      - name: Create private runtime directories
+        run: mkdir -p "$LUMINE_HOME/electronUserData" "$TEMP"
       - name: Install Linux build and headless-display dependencies
+        if: runner.os == 'Linux'
         run: |
           # A third-party repository on the runner image answering 403 must not
           # fail the job: the lists this actually needs still fetched, and the
@@ -94,4 +109,9 @@ jobs:
       - name: Run the Jasmine spec suite
         working-directory: lumine
         timeout-minutes: 20
-        run: xvfb-run --auto-servernum npm start -- --test ../linter/spec
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run --auto-servernum npm start -- --test ../linter/spec
+          else
+            npm start -- --test ../linter/spec
+          fi
