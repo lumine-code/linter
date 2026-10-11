@@ -102,6 +102,8 @@ module.exports = {
 
 ## Behavior
 
+Quick fixes belong to their current diagnostic. Withdrawing the diagnostic or replacing it with a different one, disposing its provider, or deactivating the linter package discards pending solutions and prevents an already offered action from applying a withdrawn fix. Republishing an equivalent diagnostic keeps its fixes usable.
+
 Only documents are linted: the pane items open in the workspace, plus any editor a package registered through [`linter.editors`](linter.editors.md). A package builds editors of its own to render a diff, a patch preview or a picker's input field with — they are real editors, most with no grammar and no path, and none of them reaches your `lint`. A buffer nobody has saved yet does: it is a pane item, it simply has no path. An item that is not itself an editor counts through the editor its [adapter](linter.adapter.md) names for it, so a notebook still reaches you.
 
 `lint` is called per editor and raced against a 30-second timeout; a linter that overruns it has its result discarded.
