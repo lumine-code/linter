@@ -398,8 +398,17 @@ describe("lib/linter-ui", () => {
 
       editor.setCursorBufferPosition([1, 8]);
       expect(ui.getCurrentMessage()).toBe(tracked);
+      const scrollRequests = [];
+      const subscription = editor.onDidRequestAutoscroll((request) => scrollRequests.push(request));
+      lumine.config.set("editor.scrollZone", [20, 80]);
       ui.revealMessage(tracked);
       expect(editor.getCursorBufferPosition()).toEqual([1, 6]);
+      expect(scrollRequests.map((request) => request.options.mode)).toEqual([[20, 80]]);
+
+      lumine.config.set("editor.scrollZone", [30]);
+      ui.revealMessage(tracked);
+      expect(scrollRequests.at(-1).options.mode).toEqual([30, 30]);
+      subscription.dispose();
     });
 
     it("does not read an unrelated diagnostic's display range while typing", () => {
