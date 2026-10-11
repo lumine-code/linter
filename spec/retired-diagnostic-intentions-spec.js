@@ -105,6 +105,43 @@ describe("Quick fixes belonging to withdrawn diagnostics", () => {
     expect(editor.getText()).toBe("foo\n");
   });
 
+  it("removes an earlier synchronous action withdrawn while another diagnostic waits", async () => {
+    let resolve;
+    const promised = new Promise((done) => {
+      resolve = done;
+    });
+    indie.setMessages(file, [
+      {
+        severity: "warning",
+        excerpt: "Immediate fix",
+        location: {
+          file,
+          position: [
+            [0, 0],
+            [0, 3],
+          ],
+        },
+        solutions: [solution()],
+      },
+      {
+        severity: "warning",
+        excerpt: "Pending fix",
+        location: {
+          file,
+          position: [
+            [0, 0],
+            [0, 3],
+          ],
+        },
+        solutions: promised,
+      },
+    ]);
+    const pending = request();
+    indie.setMessages(file, []);
+    resolve([solution()]);
+    expect(await pending).toEqual([]);
+  });
+
   it("applies a current ordinary replacement", async () => {
     publish([solution()]);
     const actions = await request();
