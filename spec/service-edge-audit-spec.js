@@ -123,7 +123,7 @@ describe("Linter service edge ownership", () => {
     item = {
       element: document.createElement("div"),
       getTitle: () => "Controlled adapter item",
-      isSingleton: () => true,
+      canCopy: () => false,
     };
     const adapter = {
       handlesItem: (candidate) => candidate === item,
