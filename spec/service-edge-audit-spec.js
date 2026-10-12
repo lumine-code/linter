@@ -120,7 +120,11 @@ describe("Linter service edge ownership", () => {
         hub = value;
       },
     });
-    item = { element: document.createElement("div"), getTitle: () => "Controlled adapter item" };
+    item = {
+      element: document.createElement("div"),
+      getTitle: () => "Controlled adapter item",
+      isSingleton: () => true,
+    };
     const adapter = {
       handlesItem: (candidate) => candidate === item,
       getTextEditorForItem: () => editor,

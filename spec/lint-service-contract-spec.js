@@ -298,7 +298,7 @@ describe("the awaitable lint service contract", () => {
     const editor = await openEditor();
     const sourcePane = lumine.workspace.paneForItem(editor);
     sourcePane.setPendingItem(editor);
-    const otherPane = sourcePane.splitRight({ copyActiveItem: false });
+    const otherPane = sourcePane.splitRight();
     try {
       otherPane.activate();
       expect(sourcePane.getPendingItem()).toBe(editor);
