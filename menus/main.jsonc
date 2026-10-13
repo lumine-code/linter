@@ -2,6 +2,33 @@
   // Packages > Linter menu.
   "menu": [
     {
+      "label": "Edit",
+      "submenu": [
+        {
+          "label": "Diagnostics",
+          "submenu": [
+            {
+              "label": "Lint File",
+              "command": "linter:lint"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Search",
+      "submenu": [
+        {
+          "label": "Next Diagnostic",
+          "command": "linter:next"
+        },
+        {
+          "label": "Previous Diagnostic",
+          "command": "linter:previous"
+        }
+      ]
+    },
+    {
       "label": "Packages",
       "submenu": [
         {
