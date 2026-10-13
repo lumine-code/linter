@@ -9,9 +9,13 @@
           "submenu": [
             {
               "label": "Lint File",
-              "command": "linter:lint"
+              "command": "linter:lint",
+              "group": "file",
+              "order": 10
             }
-          ]
+          ],
+          "group": "diagnostics",
+          "order": 10
         }
       ]
     },
@@ -20,11 +24,15 @@
       "submenu": [
         {
           "label": "Next Diagnostic",
-          "command": "linter:next"
+          "command": "linter:next",
+          "group": "diagnostics",
+          "order": 10
         },
         {
           "label": "Previous Diagnostic",
-          "command": "linter:previous"
+          "command": "linter:previous",
+          "group": "diagnostics",
+          "order": 20
         }
       ]
     },
