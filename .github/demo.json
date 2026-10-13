@@ -1,0 +1,16 @@
+{
+  "title": "linter",
+  "description": "An editor underline and gutter marker identify a TypeScript error.",
+  "recordedOn": "2026-10-13",
+  "sourceRevision": "e25fedd8eedf2fbcd780ff09f0ed2702e8f0847d",
+  "mode": "normal",
+  "fontSettings": "default",
+  "images": [
+    {
+      "file": "demo.png",
+      "label": "An editor underline and gutter marker identify a TypeScript error.",
+      "width": 1100,
+      "height": 490
+    }
+  ]
+}

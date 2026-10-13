@@ -16,6 +16,8 @@ Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](h
 - **Scrollbar markers**: shows the messages on the scrollbar and minimap via the marker hub.
 - **MCP tool**: provides a read-only `GetLinterMessages` tool through the `mcp.tools` service.
 
+![An editor underline and gutter marker identify a TypeScript error.](.github/demo.png)
+
 ## Installation
 
 To install `linter` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/linter`.
