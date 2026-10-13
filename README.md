@@ -81,6 +81,8 @@ Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
 
 ## Usage
 
+See the [Linting guide](docs/usage.md) for inline messages, provider management, exclusions and project scans.
+
 ### The `GetLinterMessages` MCP tool
 
 `linter` publishes one tool through `mcp.tools`, so a connected MCP host can read the diagnostics it holds. It is read-only.
