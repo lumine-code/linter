@@ -22,6 +22,11 @@ const main = require(${JSON.stringify(require.resolve("../lib/main"))});
 main.activate();
 assert(commands.includes("linter:lint"));
 assert(commands.includes("linter:inspect"));
+const metadata = require(${JSON.stringify(require.resolve("../lib/message-metadata"))});
+assert.equal(typeof metadata.Severities.isValid, "function");
+assert.equal(typeof metadata.RegistrationValidation.indie, "function");
+assert.equal(Object.keys(metadata).includes("Severities"), false);
+assert.equal(Object.keys(metadata).includes("RegistrationValidation"), false);
 const linter = main.consumeLinter({ name: "StartupFile", scope: "file", lintsOnChange: true, grammarScopes: ["source.startup"], lint: () => [] });
 const delegate = main.provideLinterRegistry()({ name: "Startup" });
 let updates = 0;
@@ -36,7 +41,7 @@ assert.equal(typeof markers.getItems, "function");
 delegate.dispose();
 linter.dispose();
 main.deactivate();
-for (const filename of ${JSON.stringify(["commands", "linter-main", "linter-ui", "commands-debug", "linter-main-runtime", "linter-ui-runtime", "marker-layer-runtime", "message-registry", "helpers", "validate", "lint-request"].map((name) => require.resolve("../lib/" + name)))}) {
+for (const filename of ${JSON.stringify(["commands", "linter-main", "linter-ui", "commands-debug", "linter-main-runtime", "linter-ui-runtime", "marker-layer-runtime", "message-registry", "helpers", "validate", "lint-request", "severities", "registration-validation"].map((name) => require.resolve("../lib/" + name)))}) {
   assert.equal(require.cache[filename], undefined, filename + " loaded before a diagnostic operation");
 }
 `;
@@ -60,6 +65,9 @@ for (const filename of ${JSON.stringify(["commands", "linter-main", "linter-ui",
     expect(firstRequire("./lib/linter-ui")).toBe(previous.LinterUI);
     expect(firstRequire("./lib/commands").Commands).toBe(previous.Commands);
     expect(firstRequire("./lib/commands").showDebug).toBe(previous.showDebug);
+    const metadata = firstRequire("./lib/message-metadata");
+    expect(firstRequire("./lib/severities")).toBe(metadata.Severities);
+    expect(firstRequire("./lib/registration-validation")).toBe(metadata.RegistrationValidation);
     await lumine.packages.unloadPackage("linter");
     const fresh = await lumine.packages.activatePackage("linter");
     const currentRequire = createRequire(path.join(fresh.path, "package.json"));
@@ -69,6 +77,13 @@ for (const filename of ${JSON.stringify(["commands", "linter-main", "linter-ui",
     expect(currentRequire("./lib/linter-main")).toBe(current.Linter);
     expect(currentRequire("./lib/linter-ui")).toBe(current.LinterUI);
     expect(currentRequire("./lib/commands").Commands).toBe(current.Commands);
+    const currentMetadata = currentRequire("./lib/message-metadata");
+    expect(currentRequire("./lib/severities")).toBe(currentMetadata.Severities);
+    expect(currentRequire("./lib/registration-validation")).toBe(
+      currentMetadata.RegistrationValidation,
+    );
+    expect(currentMetadata.Severities).not.toBe(metadata.Severities);
+    expect(currentMetadata.RegistrationValidation).not.toBe(metadata.RegistrationValidation);
     await lumine.packages.unloadPackage("linter");
   });
 });

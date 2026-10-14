@@ -7,17 +7,16 @@ describe("linter registration validation startup", () => {
     const isolatedModule = { exports: {} };
     const warnings = [];
     vm.runInNewContext(
-      fs.readFileSync(path.join(__dirname, "../lib/registration-validation.js"), "utf8"),
+      fs.readFileSync(path.join(__dirname, "../lib/message-metadata.js"), "utf8"),
       {
         module: isolatedModule,
         lumine: { notifications: { addWarning: (...args) => warnings.push(args) } },
         require: (request) => {
-          if (request === "./message-metadata") return require("../lib/message-metadata");
           throw new Error(`Unexpected registration dependency: ${request}`);
         },
       },
     );
-    const validation = isolatedModule.exports;
+    const validation = isolatedModule.exports.RegistrationValidation;
     expect(validation.ui({ name: "UI", render() {} })).toBeTrue();
     expect(validation.indie({ name: "Indie", markerInvalidation: "never" })).toBeTrue();
     expect(
