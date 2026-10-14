@@ -22,6 +22,7 @@ const main = require(${JSON.stringify(require.resolve("../lib/main"))});
 main.activate();
 assert(commands.includes("linter:lint"));
 assert(commands.includes("linter:inspect"));
+const linter = main.consumeLinter({ name: "StartupFile", scope: "file", lintsOnChange: true, grammarScopes: ["source.startup"], lint: () => [] });
 const delegate = main.provideLinterRegistry()({ name: "Startup" });
 let updates = 0;
 delegate.onDidUpdate(() => updates++);
@@ -33,8 +34,9 @@ const markers = main.provideMarkerLayer();
 assert.equal(typeof markers.initialize, "function");
 assert.equal(typeof markers.getItems, "function");
 delegate.dispose();
+linter.dispose();
 main.deactivate();
-for (const filename of ${JSON.stringify(["commands", "linter-main", "linter-ui", "commands-debug", "linter-main-runtime", "linter-ui-runtime", "marker-layer-runtime", "message-registry", "helpers", "validate"].map((name) => require.resolve("../lib/" + name)))}) {
+for (const filename of ${JSON.stringify(["commands", "linter-main", "linter-ui", "commands-debug", "linter-main-runtime", "linter-ui-runtime", "marker-layer-runtime", "message-registry", "helpers", "validate", "lint-request"].map((name) => require.resolve("../lib/" + name)))}) {
   assert.equal(require.cache[filename], undefined, filename + " loaded before a diagnostic operation");
 }
 `;
