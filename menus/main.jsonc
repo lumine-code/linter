@@ -20,7 +20,7 @@
       ]
     },
     {
-      "label": "Search",
+      "label": "Go",
       "submenu": [
         {
           "label": "Next Diagnostic",
