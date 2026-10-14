@@ -1,17 +1,17 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const { CompositeDisposable, Disposable } = require("lumine");
+const { CompositeDisposable, Disposable, Emitter } = require("lumine");
 
 describe("diagnostic projection startup", () => {
   it("loads projection only for an editor or diagnostic operation", () => {
     const isolatedModule = { exports: {} };
     let runtimeLoads = 0;
     let receiver;
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../lib/linter-ui.js"), "utf8"), {
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../lib/bootstrap.js"), "utf8"), {
       module: isolatedModule,
       require(request) {
-        if (request === "lumine") return { CompositeDisposable };
+        if (request === "lumine") return { CompositeDisposable, Emitter };
         if (request === "./message-metadata") return require("../lib/message-metadata");
         if (request === "./linter-ui-runtime") {
           runtimeLoads++;
@@ -42,7 +42,7 @@ describe("diagnostic projection startup", () => {
       },
       window: { cancelIdleCallback() {} },
     });
-    const ui = new isolatedModule.exports();
+    const ui = new isolatedModule.exports.LinterUI();
     expect(runtimeLoads).toBe(0);
     expect(ui.patchEditor({})).toBe("patched");
     expect(runtimeLoads).toBe(1);
