@@ -42,15 +42,15 @@
         {
           "label": "Linter",
           "submenu": [
-            { "label": "Lint", "command": "linter:lint" },
-            { "label": "Debug", "command": "linter:debug" },
+            { "label": "Lint Current File", "command": "linter:lint" },
+            { "label": "Inspect Diagnostics on Current Line", "command": "linter:inspect" },
             { "type": "separator" },
-            { "label": "Next Issue", "command": "linter:next" },
-            { "label": "Previous Issue", "command": "linter:previous" },
-            { "label": "Inspect Issue", "command": "linter:inspect" },
+            { "label": "Next Diagnostic", "command": "linter:next" },
+            { "label": "Previous Diagnostic", "command": "linter:previous" },
             { "type": "separator" },
-            { "label": "Toggle Linter", "command": "linter:toggle-linter" },
-            { "label": "Toggle Current File Linting", "command": "linter:toggle-current-file" }
+            { "label": "Choose Diagnostic Providers…", "command": "linter:toggle-linter" },
+            { "label": "Toggle Linting for This File", "command": "linter:toggle-current-file" },
+            { "label": "Show Linter Debug Information", "command": "linter:debug" }
           ]
         }
       ]
