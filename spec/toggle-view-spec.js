@@ -25,6 +25,13 @@ describe("ToggleView", () => {
     expect(lumine.config.get("linter.disabledProviders")).toEqual(["second"]);
     expect(view.selectList.getSelectedItemId()).toBe("second");
     expect(view.selectListHost.isVisible()).toBe(true);
+    expect(view.selectList.supportsKeepOpen()).toBe(false);
+    expect(view.selectList.getAvailableActions().map(({ command }) => command)).not.toContain(
+      "select-list:toggle-keep-open",
+    );
+    await view.selectList.confirmSelection();
+    expect(lumine.config.get("linter.disabledProviders")).toEqual([]);
+    expect(view.selectListHost.isVisible()).toBe(true);
   });
 
   it("persists each transition without mutating the previously observed setting", () => {
