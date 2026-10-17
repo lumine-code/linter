@@ -8,7 +8,8 @@
     "lib",
     "menus",
     "spec",
-    "styles"
+    "styles",
+    "THIRD_PARTY_NOTICES"
   ],
   "version": "1.0.0",
   "description": "Linting infrastructure with inline markers and hovers.",
