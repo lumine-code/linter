@@ -862,6 +862,99 @@ describe("lib/linter-ui", () => {
   // pipeline once per message, which is what makes deleting a block of lines in
   // a heavily linted file stall.
   describe("batching invalidated markers", () => {
+    it("keeps bulk edits on the batched path and retires only touched diagnostics", async () => {
+      editor.setText(Array.from({ length: 100 }, () => "const value = 1;\n").join(""));
+      const messages = [
+        message({
+          excerpt: "touched",
+          tags: ["unnecessary"],
+          location: {
+            file: "/spec.js",
+            buffer,
+            position: [
+              [0, 0],
+              [0, 5],
+            ],
+          },
+        }),
+        message({
+          excerpt: "shifted",
+          location: {
+            file: "/spec.js",
+            buffer,
+            position: [
+              [50, 6],
+              [50, 11],
+            ],
+          },
+        }),
+      ];
+      ui.onDeleteMessages = jasmine.createSpy("onDeleteMessages");
+      publish(messages);
+      const touched = buffer.linterUI.markerMap.get(messages[0].key);
+      const shifted = buffer.linterUI.markerMap.get(messages[1].key)[0];
+      spyOn(buffer, "setTextInRange").and.callThrough();
+      buffer.setTextInIndependentRanges(
+        Array.from({ length: 100 }, (_, row) => ({
+          range: [
+            [row, 0],
+            [row, 0],
+          ],
+          text: "# ",
+        })),
+      );
+      expect(buffer.setTextInRange).not.toHaveBeenCalled();
+      expect(touched.every((marker) => marker.isDestroyed())).toBe(true);
+      expect(shifted.isValid()).toBe(true);
+      expect(shifted.getRange()).toEqual([
+        [50, 8],
+        [50, 13],
+      ]);
+      await Promise.resolve();
+      expect(ui.onDeleteMessages.calls.count()).toBe(1);
+      expect(ui.onDeleteMessages.calls.argsFor(0)[0]).toEqual([messages[0]]);
+    });
+
+    it("hides invalid anchors from diagnostic lookup before the transaction ends", () => {
+      const diagnostic = message();
+      publish([diagnostic]);
+      buffer.transact(() => {
+        buffer.insert([0, 7], "x");
+        expect(ui.getMessagesAtPosition(editor, [0, 8])).toEqual([]);
+      });
+    });
+
+    it("uses a narrow native index query for an ordinary edit", () => {
+      const messages = [
+        message(),
+        message({
+          excerpt: "other row",
+          location: {
+            file: "/spec.js",
+            buffer,
+            position: [
+              [1, 0],
+              [1, 6],
+            ],
+          },
+        }),
+      ];
+      publish(messages);
+      const unrelated = buffer.linterUI.markerMap.get(messages[1].key)[0];
+      const layer = buffer.linterUI.severityLayers.hint;
+      spyOn(layer, "findMarkers").and.callThrough();
+      buffer.insert([0, 7], "x");
+      const invalidQueries = layer.findMarkers.calls
+        .allArgs()
+        .filter(([query]) => query.valid === false);
+      expect(invalidQueries.length).toBe(1);
+      expect(invalidQueries[0][0].intersectsRange).toEqual([
+        [0, 7],
+        [0, 8],
+      ]);
+      expect(unrelated.isDestroyed()).toBe(false);
+    });
+
     it("asks for every message an edit invalidated in one call", async () => {
       const messages = [
         message({ excerpt: "one" }),
