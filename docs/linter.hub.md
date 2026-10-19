@@ -45,7 +45,7 @@ Every method is required. The handle is also supplied to each [`linter.ui`](lint
 | `hasLazyDescription(message)`             | `boolean`               | Whether there is a long form still to fetch.                                                                                                                    |
 | `resolveDescription(message)`             | `Promise<string\|null>` | Fetch the long form, memoized across UIs.                                                                                                                       |
 
-One frozen object is shared by every consumer in the provider's current window and activation. Each severity record carries `name`, `label`, `rank` (0 is most severe), `lsp`, `icon`, `textClass`, `gutterDot` and `hideWhenZero`. The list is open-ended; give an unrecognized severity the lowest precedence.
+One frozen object is shared by every consumer in the provider's current workspace and activation. Each severity record carries `name`, `label`, `rank` (0 is most severe), `lsp`, `icon`, `textClass`, `gutterDot` and `hideWhenZero`. The list is open-ended; give an unrecognized severity the lowest precedence.
 
 ## Minimal example
 
