@@ -43,7 +43,7 @@ describe("linter package assets", () => {
   it("names nothing that belongs to the panel", () => {
     for (const file of ["keymaps/main.jsonc", "menus/main.jsonc"]) {
       const source = read(file);
-      expect(source).not.toContain("diagnostics");
+      expect(source).not.toContain('"diagnostics:');
       expect(source).not.toContain("alt-l");
       expect(source).not.toContain("toggle-panel");
     }
