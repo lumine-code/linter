@@ -4,7 +4,7 @@ module.exports = {
   dependencies: [
     "language-typescript",
     "marker",
-    "linter-panel",
+    "diagnostics",
     "documentation-view",
     "hover",
     "ide",

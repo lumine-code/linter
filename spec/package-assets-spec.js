@@ -38,12 +38,12 @@ describe("linter package assets", () => {
     expect(flat).not.toContain('"commands"');
   });
 
-  // The front end is `linter-panel`'s. Its commands, its reveal-tier key and
+  // The front end is `diagnostics`'s. Its commands, its reveal-tier key and
   // its root class must not be named from here.
   it("names nothing that belongs to the panel", () => {
     for (const file of ["keymaps/main.jsonc", "menus/main.jsonc"]) {
       const source = read(file);
-      expect(source).not.toContain("linter-panel");
+      expect(source).not.toContain("diagnostics");
       expect(source).not.toContain("alt-l");
       expect(source).not.toContain("toggle-panel");
     }
@@ -68,9 +68,9 @@ describe("linter package assets", () => {
   it("styles the decorations and the hover, and nothing the panel draws", () => {
     const css = read("styles/linter.css");
     expect(css).toContain(".linter-hover");
-    expect(css).not.toContain(".linter-panel");
-    expect(css).not.toContain(".linter-status");
-    expect(css).not.toContain(".linter-row");
+    expect(css).not.toContain(".diagnostics");
+    expect(css).not.toContain(".diagnostics-status");
+    expect(css).not.toContain(".diagnostics-row");
   });
 
   it("is named `linter`, scopes its dependencies, and drops lodash", () => {

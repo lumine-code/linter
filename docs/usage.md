@@ -1,6 +1,6 @@
 # Linting guide
 
-The linter package surfaces diagnostics — errors, warnings, info, and hints — from providers and language servers directly in the editor. See the [package README](../README.md) for installation and the command list. Providers such as `spell-check` and language adapters such as `ide-eslint` and `ide-ruff` report the problems; the `linter` package collects them and marks them in the editor. Language adapters also need `ide`. To read them all in one list, add `linter-panel`.
+The linter package surfaces diagnostics — errors, warnings, info, and hints — from providers and language servers directly in the editor. See the [package README](../README.md) for installation and the command list. Providers such as `spell-check` and language adapters such as `ide-eslint` and `ide-ruff` report the problems; the `linter` package collects them and marks them in the editor. Language adapters also need `ide`. To read them all in one list, add `diagnostics`.
 
 ## Inline messages
 
@@ -30,6 +30,6 @@ Packages can consume [`linter.lint`](linter.lint.md) and await `lintEditor(edito
 
 Install `spell-check` to report misspellings through the linter and offer corrections through [autocomplete](https://github.com/lumine-code/autocomplete/blob/master/docs/usage.md) and code actions. Use **Checked Grammars**, **Excluded Scopes**, and **Severity** to control automatic checking. `spell-check:check-spelling` checks nonempty selections regardless of the scope settings; with no selection, it checks the whole file using its configured grammar scopes and exclusions.
 
-`ide-ruff:lint-projects` and `ide-eslint:lint-projects` scan project files on demand, including files that are not open. Their `lint-selected` commands scan the files or folders selected in the tree view. Results appear in `linter` and `linter-panel`; opening a file preserves the scan's findings. These scans complement the adapters' live language-server diagnostics.
+`ide-ruff:lint-projects` and `ide-eslint:lint-projects` scan project files on demand, including files that are not open. Their `lint-selected` commands scan the files or folders selected in the tree view. Results appear in `linter` and `diagnostics`; opening a file preserves the scan's findings. These scans complement the adapters' live language-server diagnostics.
 
 `ide-ruff` uses the same selected Ruff executable for its server and scans, including notebook files and safely projected `.ipy` documents. `ide-eslint` uses each project's ESLint and plugins, with bundled ESLint v8 for legacy configuration or v10 for flat configuration when no user-installed engine is available. Configuration Format defaults to automatic detection.

@@ -47,6 +47,11 @@
     }
   },
   "providedServices": {
+    "linter.hub": {
+      "versions": {
+        "1.0.0": "provideLinterHub"
+      }
+    },
     "linter.lint": {
       "versions": {
         "1.0.0": "provideLinterLint"

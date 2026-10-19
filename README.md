@@ -2,7 +2,7 @@
 
 Linting infrastructure with inline markers and hovers.
 
-Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](https://github.com/steelbrain/linter-ui-default). The panel and the status-bar tile live in [linter-panel](https://github.com/lumine-code/linter-panel).
+Fork of [linter](https://github.com/steelbrain/linter) and [linter-ui-default](https://github.com/steelbrain/linter-ui-default). The panel and the status-bar tile live in [diagnostics](https://github.com/lumine-code/diagnostics).
 
 ## Features
 
@@ -70,6 +70,7 @@ Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
 
 ## Services
 
+- [`linter.hub`](docs/linter.hub.md): provided to read, navigate and clear diagnostics or reveal project views through the user's chosen UI services.
 - [`linter.registry`](docs/linter.registry.md): provided to let packages push messages directly without implementing a full linter provider.
 - [`linter.editors`](docs/linter.editors.md): provided to let a package register an editor of its own — a commit box, a notebook's source editor — for linting; only pane items are linted on their own.
 - [`linter.lint`](docs/linter.lint.md): provided to request a current lint pass with cancellation and explicit outcomes for an editor or named buffer without opening a tab.
@@ -78,7 +79,7 @@ Hints get no gutter dot by default, since they are meant to stay quiet. Add one:
 - `context-help.provider`: provided to show diagnostic messages in tooltips and the documentation panel, ahead of documentation sources.
 - `marker.layer`: provided to draw the messages on the editor's overview maps (scrollbar, minimap).
 - [`linter.provider`](docs/linter.provider.md): consumed to collect diagnostics from linter providers such as `spell-check`.
-- [`linter.ui`](docs/linter.ui.md): consumed to hand messages, and a handle to ask about them, to whatever displays them — the `linter-panel` package, a scrollbar overview.
+- [`linter.ui`](docs/linter.ui.md): consumed to hand messages, and a handle to ask about them, to whatever displays them — the `diagnostics` package, a scrollbar overview.
 - [`linter.adapter`](docs/linter.adapter.md): consumed to let non-`TextEditor` pane items, such as Jupyter notebooks, take part in linting.
 
 ## Usage

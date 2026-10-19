@@ -44,6 +44,95 @@ describe("the linter.ui handle", () => {
     const original = first.getMessages;
     first.getMessages = null;
     expect(first.getMessages).toBe(original);
+    expect(main.provideLinterHub()).toBe(first);
+  });
+
+  it("routes project views through replaceable UI services and retires detached edges", () => {
+    const hub = main.provideLinterHub();
+    expect(hub.canShowProjectView()).toBe(false);
+    expect(hub.showProjectView()).toBe(false);
+    const original = jasmine.createSpy("original project view");
+    const alternative = jasmine.createSpy("alternative project view");
+    const first = main.consumeLinterUI(ui({ name: "first-view", showProjectView: original }));
+    const second = main.consumeLinterUI(
+      ui({ name: "alternative-view", showProjectView: alternative }),
+    );
+    expect(hub.canShowProjectView()).toBe(true);
+    expect(hub.showProjectView()).toBe(true);
+    expect(original).toHaveBeenCalledTimes(1);
+    expect(alternative).toHaveBeenCalledTimes(1);
+    first.dispose();
+    expect(hub.showProjectView()).toBe(true);
+    expect(original).toHaveBeenCalledTimes(1);
+    expect(alternative).toHaveBeenCalledTimes(2);
+    second.dispose();
+    expect(hub.canShowProjectView()).toBe(false);
+    expect(hub.showProjectView()).toBe(false);
+  });
+
+  it("does not route retained hub actions into a later activation", () => {
+    const previous = main.provideLinterHub();
+    main.deactivate();
+    main.activate();
+    const current = main.provideLinterHub();
+    const show = jasmine.createSpy("current view");
+    main.consumeLinterUI(ui({ showProjectView: show }));
+    const delegate = main.provideLinterRegistry()({ name: "current messages" });
+    delegate.setMessages("/current.js", [
+      {
+        severity: "error",
+        excerpt: "Current generation",
+        location: {
+          file: "/current.js",
+          position: [
+            [0, 0],
+            [0, 1],
+          ],
+        },
+      },
+    ]);
+    expect(current).not.toBe(previous);
+    expect(previous.canShowProjectView()).toBe(false);
+    expect(previous.showProjectView()).toBe(false);
+    expect(previous.nextMessage()).toBe(false);
+    expect(previous.previousMessage()).toBe(false);
+    expect(previous.clearMessages()).toBe(false);
+    expect(show).not.toHaveBeenCalled();
+    expect(current.getMessages().length).toBe(1);
+    current.clearMessages();
+    expect(current.getMessages()).toEqual([]);
+  });
+
+  it("navigates the active document through the hub without a UI package command", async () => {
+    const editor = await lumine.workspace.open("hub-navigation.js");
+    editor.setText("first diagnostic\nsecond diagnostic\n");
+    try {
+      const delegate = main.provideLinterRegistry()({ name: "navigation" });
+      delegate.setMessages(
+        editor.getPath(),
+        [0, 1].map((row) => ({
+          severity: "warning",
+          excerpt: "Navigate here",
+          location: {
+            file: editor.getPath(),
+            position: [
+              [row, 2],
+              [row, 3],
+            ],
+          },
+        })),
+      );
+      const hub = main.provideLinterHub();
+      editor.setCursorBufferPosition([0, 0]);
+      hub.nextMessage();
+      expect(editor.getCursorBufferPosition()).toEqual([0, 2]);
+      hub.nextMessage();
+      expect(editor.getCursorBufferPosition()).toEqual([1, 2]);
+      hub.previousMessage();
+      expect(editor.getCursorBufferPosition()).toEqual([0, 2]);
+    } finally {
+      editor.destroy();
+    }
   });
 
   it("answers with the severity model rather than making a UI hardcode it", () => {
