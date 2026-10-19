@@ -124,6 +124,29 @@ describe("linter marker layer", () => {
       layer.disposables.dispose();
     });
 
+    it("shares one grouped publication across editors displaying the same file", () => {
+      const copy = editor.copy();
+      const first = createLayer(editor);
+      const second = createLayer(copy);
+      const own = message("error", 2, 3);
+      const foreign = message("warning", 5, 5, path.join(tempDir, "other.js"));
+      const messages = [own, foreign];
+      spyOn(messages, "filter").and.callThrough();
+      try {
+        ui.render({ added: messages, removed: [], messages });
+
+        expect(first.cache.get("data")).toEqual([own]);
+        expect(second.cache.get("data")).toBe(first.cache.get("data"));
+        expect(first.update).toHaveBeenCalledTimes(1);
+        expect(second.update).toHaveBeenCalledTimes(1);
+        expect(messages.filter).not.toHaveBeenCalled();
+      } finally {
+        first.disposables.dispose();
+        second.disposables.dispose();
+        copy.destroy();
+      }
+    });
+
     it("does not touch the layer when the patch concerns other files", () => {
       const layer = createLayer(editor);
 
@@ -410,6 +433,24 @@ describe("linter marker layer", () => {
         editor.getBuffer().insert([8, 0], "\n");
 
         expect(currentItems()).toEqual(exactItems(messages));
+      });
+
+      it("invalidates cached anchors once at the poll after repeated row-changing edits", () => {
+        const messages = [tracked(2), tracked(10), message("warning", 20, 20)];
+        layer.cache.set("data", messages);
+        provider.getItems(layer);
+        const projection = layer.cache.get("projection");
+        const entries = projection[Symbol.iterator].bind(projection);
+        const visitProjection = jasmine
+          .createSpy("visit diagnostic projection")
+          .and.callFake(entries);
+        projection[Symbol.iterator] = visitProjection;
+
+        for (let index = 0; index < 20; index++) editor.getBuffer().insert([5, 0], "\n");
+
+        expect(visitProjection).not.toHaveBeenCalled();
+        expect(currentItems()).toEqual(exactItems(messages));
+        expect(visitProjection).toHaveBeenCalledTimes(1);
       });
 
       it("keeps snapshot rows fixed when no inline marker tracks an edit", () => {
