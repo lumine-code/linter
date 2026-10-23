@@ -43,17 +43,18 @@ type IndieConfig = {
 
 The delegate:
 
-| Member                            | Description                                                                                      |
-| --------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `name`                            | The name you registered.                                                                         |
-| `setMessages(filePath, messages)` | Replaces the messages for one file. Every message's resolved subject path must match `filePath`. |
-| `setAllMessages(messages)`        | Replaces everything this delegate has published, re-bucketed by its resolved subject path.       |
-| `deleteFilePath(filePath)`        | Drops the messages for one file.                                                                 |
-| `clearMessages()`                 | Drops all of them.                                                                               |
-| `getMessages()`                   | The delegate's current messages, flattened.                                                      |
-| `onDidUpdate(callback)`           | Fires after each of the mutators above.                                                          |
-| `onDidDestroy(callback)`          | Fires when the delegate is disposed.                                                             |
-| `dispose()`                       | Unregisters the delegate and clears its messages.                                                |
+| Member                                           | Description                                                                                              |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `name`                                           | The name you registered.                                                                                 |
+| `setMessages(filePath, messages)`                | Replaces the messages for one file. Every message's resolved subject path must match `filePath`.         |
+| `setMessagesAsync(filePath, messages, options?)` | Optional asynchronous preparation of one complete per-file report; resolves to whether it was published. |
+| `setAllMessages(messages)`                       | Replaces everything this delegate has published, re-bucketed by its resolved subject path.               |
+| `deleteFilePath(filePath)`                       | Drops the messages for one file.                                                                         |
+| `clearMessages()`                                | Drops all of them.                                                                                       |
+| `getMessages()`                                  | The delegate's current messages, flattened.                                                              |
+| `onDidUpdate(callback)`                          | Fires after each of the mutators above.                                                                  |
+| `onDidDestroy(callback)`                         | Fires when the delegate is disposed.                                                                     |
+| `dispose()`                                      | Unregisters the delegate and clears its messages.                                                        |
 
 Messages take the same shape as for [`linter.provider`](linter.provider.md): `severity`, `excerpt`, and `location` with `position` and at least one of `file` or `buffer` are required; `tags`, `description`, `solutions`, `reference`, `url`, `icon`, and `linterName` are optional. An explicit file identifies the subject path; otherwise a named buffer supplies its current path. Buffer-only and path-only diagnostics for the same editor are both shown.
 
@@ -90,7 +91,11 @@ An indie delegate is always project-scoped: its messages persist until you repla
 
 Registered delegates appear alongside classic providers in `linter:toggle-linter`, grouped by `name`. Disabling a provider hides its messages from every linter surface while the delegate continues storing updates. Enabling it immediately restores its latest snapshot without asking the producer to run again. The setting is persisted in `linter.disabledProviders`; it does not stop a language server or disable its other features.
 
-Every call is committed immediately; marker invalidation does not add an update delay.
+Synchronous setters commit immediately; marker invalidation does not add an update delay. `setMessagesAsync`, when available, yields before preparation and validates and normalizes diagnostics in cooperative slices with a 4 ms work budget. It publishes the complete report once after preparation; subscribers never receive intermediate batches. The final update notification uses the same full snapshot and `affectedFiles` hint as `setMessages`.
+
+`setMessagesAsync(filePath, messages, { signal, isCurrent })` accepts an optional `AbortSignal` and an optional synchronous, side-effect-free `isCurrent()` predicate. It resolves to `true` after publication, or `false` if validation declines the report, preparation is cancelled, or its owner is no longer current. Invalid parameters and mismatched file paths reject the promise. Await the promise and handle rejection at the producer's request boundary. Each message is a cooperative work unit; synchronous getters and individual metadata transformations are not preempted, and the final subscriber notification is outside the preparation budget.
+
+An accepted newer async or synchronous update for the same normalized file invalidates its pending preparation. Deleting that file also cancels preparation when no report has been published yet. `clearMessages`, `setAllMessages` and disposal invalidate all pending preparations; updates for unrelated files remain independent. An invocation already aborted or rejected by `isCurrent()` does not replace a valid preparation. Cancellation leaves the last published report in place unless an explicit clear, delete or replacement changes it.
 
 The default `"touch"` retires a message as soon as an edit touches its inline range. It suits classic linters that recompute after typing stops, preventing their previous result from remaining visible during that delay.
 
@@ -98,9 +103,11 @@ The default `"touch"` retires a message as soon as an edit touches its inline ra
 
 `setMessages` throws if `filePath` is not a string or `messages` is not an array, and again if any message's resolved subject path differs from `filePath` after filesystem normalization — the per-file bucket must be internally consistent. `setAllMessages` has no such constraint; it re-buckets by each message's own resolved subject path and can retain untitled buffer diagnostics.
 
-Messages are validated on every `setMessages`, and on `setAllMessages` only in dev mode or when the argument is not an array. Invalid messages raise `[Linter] Invalid Linter Result received` and the call is dropped, leaving the previous set in place.
+Messages are validated on every `setMessages` and `setMessagesAsync`, and on `setAllMessages` only in dev mode or when the argument is not an array. Invalid messages raise `[Linter] Invalid Linter Result received` and the call is dropped, leaving the previous set in place.
 
 The delegate normalizes messages **in place**, so do not pass shared or frozen objects.
+
+For `setMessagesAsync`, pass a fresh owned array and owned message objects, keep them unchanged until the promise settles, and discard cancelled input rather than reusing its partially normalized objects. Check for the optional method when supporting older delegates; `setMessages` remains the synchronous fallback.
 
 Calls on a disposed delegate are ignored rather than throwing, so a late callback after teardown is harmless.
 

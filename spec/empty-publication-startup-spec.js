@@ -14,6 +14,7 @@ describe("empty indie diagnostic publications", () => {
       require(request) {
         if (request === "lumine") return { Emitter, CompositeDisposable };
         if (request === "node:util") return require("node:util");
+        if (request === "node:timers") return require("node:timers");
         if (request === "./message-metadata") return require("../lib/message-metadata");
         if (request === "./validate")
           return {
