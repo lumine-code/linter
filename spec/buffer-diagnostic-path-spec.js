@@ -27,7 +27,9 @@ describe("buffer diagnostic paths across lint and MCP services", () => {
   };
   const read = (args) => Main.provideMcpTools()[0].execute(args);
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     jasmine.useRealClock();
     lumine.config.setSchema("linter", {
       type: "object",

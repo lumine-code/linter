@@ -38,7 +38,9 @@ describe("linter provider message state", () => {
     instance.setUIRenderCallback((difference) => renders.push(difference));
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     lumine.config.setSchema("linter", {
       type: "object",
       properties: require("../package.json").configSchema,

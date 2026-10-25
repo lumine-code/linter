@@ -51,10 +51,12 @@ interface Lint {
 
 `null` or an omitted target returns `skipped` with reason `no-target`. A non-model target, malformed options or malformed signal rejects with `TypeError` before starting provider work. `lintEditor` accepts unsaved editors; `lintBuffer` requires a named buffer and returns `skipped` with reason `no-path` otherwise.
 
+An editor using None (`lumine.grammars.nullGrammar`) returns `skipped` with reason `no-grammar` before its text is copied or any provider runs, including wildcard providers. Selecting None cancels outstanding passes and clears the document's file diagnostics and inline markers; selecting a grammar resumes ordinary linting. A detached buffer explicitly assigned or associated with None is skipped before snapshotting; other unassigned detached buffers still detect their snapshot's grammar normally.
+
 | Request status | Meaning                                                                                                                         |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `completed`    | The current pass settled without failed or cancelled providers. It may have no matching providers or only unchanged results.    |
-| `skipped`      | No pass ran because its target was absent or excluded by the buffer-disabled, ignore-glob or preview-tab policy.                |
+| `skipped`      | No pass ran because its target was absent, had no grammar or was excluded by the buffer-disabled, ignore-glob or preview policy. |
 | `cancelled`    | The request or a provider run became obsolete, was aborted, or lost its target, registration or package generation.             |
 | `failed`       | Preparation or grammar readiness failed, or at least one provider failed. Successful siblings may still have published results. |
 
@@ -67,7 +69,7 @@ interface Lint {
 
 Accepted messages are published synchronously before the request promise resolves. Inspect the result before treating a following diagnostics read as a successful refresh. `completed` does not guarantee that any provider ran or supplied new messages, and unchanged or failed providers can leave previously known diagnostics in the registry. Partial results already accepted from valid siblings remain available when another provider fails or is cancelled. The `GetLinterMessages` MCP tool reads that known registry state without triggering a pass. Indie providers, including language servers publishing through `linter.registry`, keep their own schedule and are not triggered or awaited.
 
-Request reasons include `no-target`, `no-path`, `disabled`, `ignored` and `preview` for skips; `aborted`, `superseded`, `changed`, `path-changed`, `encoding-changed`, `grammar-changed`, `snapshot-changed`, `destroyed`, `disposed` and provider cancellation reasons for cancellations; and `preparation-error`, `grammar-unavailable`, `grammar-timeout` or `provider-error` for failures. A mixture of provider cancellation reasons is reported as `provider-cancelled`. Provider reasons can also identify `timeout`, `invalid-messages` or `unregistered`. Treat an unfamiliar reason conservatively rather than assuming it indicates success.
+Request reasons include `no-target`, `no-path`, `no-grammar`, `disabled`, `ignored` and `preview` for skips; `aborted`, `superseded`, `changed`, `path-changed`, `encoding-changed`, `grammar-changed`, `snapshot-changed`, `destroyed`, `disposed` and provider cancellation reasons for cancellations; and `preparation-error`, `grammar-unavailable`, `grammar-timeout` or `provider-error` for failures. A mixture of provider cancellation reasons is reported as `provider-cancelled`. Provider reasons can also identify `timeout`, `invalid-messages` or `unregistered`. Treat an unfamiliar reason conservatively rather than assuming it indicates success.
 
 ## Minimal example
 

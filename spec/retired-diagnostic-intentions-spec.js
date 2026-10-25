@@ -6,6 +6,8 @@ describe("Quick fixes belonging to withdrawn diagnostics", () => {
   let editor, indie, intentions, leases, scratch, file;
 
   beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     for (const method of ["openExternal", "openPath", "showItemInFolder", "openApplication"])
       if (!jasmine.isSpy(lumine.shell[method])) spyOn(lumine.shell, method).and.resolveTo();
     if (!jasmine.isSpy(lumine.application.openWindow))

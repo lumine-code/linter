@@ -13,6 +13,8 @@ describe("Linter service edge ownership", () => {
     },
   });
   beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     await lumine.packages.deactivatePackage("linter");
     await lumine.packages.loadPackage("linter");
     lumine.config.set("linter.lintOnOpen", false);

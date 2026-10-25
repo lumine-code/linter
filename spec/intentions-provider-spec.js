@@ -7,7 +7,9 @@ describe("lib/intentions-provider", () => {
   let messages;
   let provider;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     editor = lumine.workspace.buildTextEditor();
     editor.getBuffer().setPath(filePath);
     editor.setText("const foo = 1;\n");

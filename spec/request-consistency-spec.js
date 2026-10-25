@@ -48,7 +48,9 @@ describe("awaitable linter request consistency", () => {
     return buffer;
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     lumine.config.setSchema("linter", {
       type: "object",
       properties: require("../package.json").configSchema,

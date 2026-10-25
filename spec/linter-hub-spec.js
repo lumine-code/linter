@@ -12,7 +12,9 @@ describe("the linter.ui handle", () => {
     ...overrides,
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     attached = [];
     // main.js is the package's main module, so it is activated the way package
     // load would rather than reached into.

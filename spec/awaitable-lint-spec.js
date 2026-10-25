@@ -25,7 +25,9 @@ describe("awaitable linter passes", () => {
     return original;
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     jasmine.useRealClock();
     lumine.config.setSchema("linter", {
       type: "object",
@@ -72,6 +74,33 @@ describe("awaitable linter passes", () => {
     expect((await pass).status).toBe("completed");
     expect(messages().map((entry) => entry.excerpt)).toEqual(["fresh"]);
     editor.destroy();
+  });
+
+  it("does not snapshot a detached buffer explicitly assigned None", async () => {
+    const original = buffer();
+    lumine.grammars.assignGrammar(original, lumine.grammars.nullGrammar);
+    const read = spyOn(original, "getText").and.callThrough();
+    expect((await instance.lintBuffer(original)).reason).toBe("no-grammar");
+    expect(read).not.toHaveBeenCalled();
+    expect(targets).toEqual([]);
+  });
+
+  it("does not snapshot a detached buffer automatically associated with None", async () => {
+    const previous = lumine.config.get("core.customFileTypes");
+    const original = buffer();
+    const read = spyOn(original, "getText").and.callThrough();
+    try {
+      lumine.config.set("core.customFileTypes", {
+        [lumine.grammars.nullGrammar.scopeName]: ["py"],
+      });
+      expect(lumine.grammars.getAssignedLanguageId(original)).toBeUndefined();
+      expect((await instance.lintBuffer(original)).reason).toBe("no-grammar");
+      expect(read).not.toHaveBeenCalled();
+      expect(targets).toEqual([]);
+    } finally {
+      if (previous === undefined) lumine.config.unset("core.customFileTypes");
+      else lumine.config.set("core.customFileTypes", previous);
+    }
   });
 
   it("lints a private snapshot without opening a tab or taking buffer ownership", async () => {

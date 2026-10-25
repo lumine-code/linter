@@ -10,7 +10,9 @@ describe("lib/context-help-provider", () => {
   let buffer;
   let provider;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     editor = lumine.workspace.buildTextEditor();
     editor.setText("const unused = 1;\nlegacy();\n");
     buffer = editor.getBuffer();

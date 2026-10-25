@@ -30,6 +30,8 @@ describe("grammar changes", () => {
   };
 
   beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     lumine.config.setSchema("linter", {
       type: "object",
       properties: require("../package.json").configSchema,
@@ -61,6 +63,54 @@ describe("grammar changes", () => {
     for (const disposable of disposables.reverse()) disposable.dispose();
     if (!editor.isDestroyed()) editor.destroy();
     Main.deactivate();
+  });
+
+  it("clears results, cancels pending work, and never invokes wildcard linters with None", async () => {
+    const grammar = editor.getGrammar();
+    const lint = jasmine
+      .createSpy("null-aware linter")
+      .and.callFake((target) => [diagnosticFor(target)]);
+    register({
+      name: "null-grammar-spec",
+      scope: "file",
+      lintsOnChange: true,
+      grammarScopes: ["*"],
+      lint,
+    });
+    await conditionPromise(() => renders.some((change) => change.added.length === 1));
+    const calls = lint.calls.count();
+    editor.setGrammar(lumine.grammars.nullGrammar);
+    await conditionPromise(() => renders.some((change) => change.removed.length === 1));
+    const read = spyOn(editor.getBuffer(), "getText").and.callThrough();
+    expect((await Main.provideLinterLint().lintEditor(editor)).reason).toBe("no-grammar");
+    expect(read).not.toHaveBeenCalled();
+    expect(lint.calls.count()).toBe(calls);
+    editor.setGrammar(grammar);
+    await conditionPromise(() => lint.calls.count() > calls);
+  });
+
+  it("aborts an outstanding lint pass when None is selected", async () => {
+    let finish, signal;
+    register({
+      name: "null-pending-spec",
+      scope: "file",
+      lintsOnChange: true,
+      grammarScopes: ["*"],
+      lint(_editor, options) {
+        signal = options.signal;
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      },
+    });
+    await conditionPromise(() => finish);
+    editor.setGrammar(lumine.grammars.nullGrammar);
+    expect(signal.aborted).toBeTrue();
+    finish([diagnosticFor(editor)]);
+    await conditionPromise(() =>
+      finishes.some((event) => event.linter.name === "null-pending-spec"),
+    );
+    expect(renders.some((change) => change.added.length)).toBeFalse();
   });
 
   it("re-lints a wildcard provider under the new grammar", async () => {

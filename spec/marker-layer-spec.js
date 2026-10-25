@@ -16,6 +16,8 @@ describe("linter marker layer", () => {
   let workspaceElement, editor, editorPath, tempDir;
 
   beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     workspaceElement = lumine.views.getView(lumine.workspace);
     jasmine.attachToDOM(workspaceElement);
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "linter-marker-"));

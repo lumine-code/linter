@@ -1,6 +1,8 @@
 describe("Linter same-line length thresholds", () => {
   let ui, editor;
   beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     await lumine.packages.deactivatePackage("linter");
     lumine.config.setSchema("linter", {
       type: "object",
@@ -49,6 +51,8 @@ describe("Linter same-line length thresholds", () => {
 describe("EditorLinter copied configuration callback", () => {
   let editor, linter, earlier;
   beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     await lumine.packages.deactivatePackage("linter");
     lumine.config.setSchema("linter", {
       type: "object",

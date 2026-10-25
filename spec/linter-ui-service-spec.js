@@ -37,6 +37,8 @@ describe("lib/linter-main linting progress", () => {
   };
 
   beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     events = [];
     // Linter is constructed directly rather than through the package, so
     // register the schema the way package load would: the registry and the lint

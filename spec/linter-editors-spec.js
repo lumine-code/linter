@@ -7,7 +7,9 @@ let EditorRegistry;
 // is registered by its owner through the `linter.editors` service. These specs
 // pin both halves of that contract.
 describe("lib/editor-registry discovery", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     EditorRegistry = require("../lib/editor-registry");
   });
 
@@ -147,7 +149,9 @@ describe("the linter.editors service", () => {
     },
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     // The service is exercised through the real package entry, so register the
     // schema the way package load would: the registries read its defaults.
     lumine.config.setSchema("linter", {

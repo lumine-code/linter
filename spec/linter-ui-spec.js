@@ -14,7 +14,9 @@ describe("lib/linter-ui", () => {
   // Attach the editor element directly, with an explicit size: a component that
   // believes it is invisible skips its update entirely, so a workspace-hosted
   // editor in a headless spec never paints the decorations these specs read.
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     editor = lumine.workspace.buildTextEditor();
     editor.setText("const unused = 1;\nlegacy();\n");
     const element = lumine.views.getView(editor);

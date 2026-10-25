@@ -12,6 +12,8 @@ describe("Diagnostics addressed by buffer and file", () => {
   let main, editor, file, scratch, provider, hub, uiLease;
 
   beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     lumine.config.set("linter.lintOnOpen", false);
     scratch = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "mixed-diagnostics-")));
     file = path.join(scratch, "source.txt");

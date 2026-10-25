@@ -17,7 +17,9 @@ describe("lib/linter-registry", () => {
     },
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     LinterRegistry = require("../lib/linter-registry");
     // The registry reads these when it is constructed, and the schema that
     // supplies their defaults is only registered once the package activates.

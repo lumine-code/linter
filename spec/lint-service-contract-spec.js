@@ -78,7 +78,9 @@ describe("the awaitable lint service contract", () => {
     }
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     jasmine.useRealClock();
     lumine.config.setSchema("linter", {
       type: "object",

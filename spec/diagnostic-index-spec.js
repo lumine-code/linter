@@ -9,7 +9,9 @@ const {
 describe("diagnostic index", () => {
   let editor, buffer, state, markers;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const textGrammarPackage = await lumine.packages.activatePackage("language-text");
+    await textGrammarPackage.resourceLoadPromise;
     editor = lumine.workspace.buildTextEditor();
     editor.setText(Array(200).fill("abcdefghijklmnop").join("\n"));
     buffer = editor.getBuffer();
