@@ -6,7 +6,7 @@ module.exports = {
   printWidth: 100,
   bracketSpacing: true,
   arrowParens: "always",
-  endOfLine: "auto",
+  endOfLine: "lf",
   overrides: [
     {
       // A .jsonc menu file exists for its comments, not for trailing commas.
