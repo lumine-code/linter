@@ -53,12 +53,12 @@ interface Lint {
 
 An editor using None (`lumine.grammars.nullGrammar`) returns `skipped` with reason `no-grammar` before its text is copied or any provider runs, including wildcard providers. Selecting None cancels outstanding passes and clears the document's file diagnostics and inline markers; selecting a grammar resumes ordinary linting. A detached buffer explicitly assigned or associated with None is skipped before snapshotting; other unassigned detached buffers still detect their snapshot's grammar normally.
 
-| Request status | Meaning                                                                                                                         |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `completed`    | The current pass settled without failed or cancelled providers. It may have no matching providers or only unchanged results.    |
+| Request status | Meaning                                                                                                                          |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `completed`    | The current pass settled without failed or cancelled providers. It may have no matching providers or only unchanged results.     |
 | `skipped`      | No pass ran because its target was absent, had no grammar or was excluded by the buffer-disabled, ignore-glob or preview policy. |
-| `cancelled`    | The request or a provider run became obsolete, was aborted, or lost its target, registration or package generation.             |
-| `failed`       | Preparation or grammar readiness failed, or at least one provider failed. Successful siblings may still have published results. |
+| `cancelled`    | The request or a provider run became obsolete, was aborted, or lost its target, registration or package generation.              |
+| `failed`       | Preparation or grammar readiness failed, or at least one provider failed. Successful siblings may still have published results.  |
 
 | Provider status | Meaning                                                                                                                                                          |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
