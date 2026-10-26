@@ -2,6 +2,8 @@
 
 Request a current classic-linter pass for an editor or named buffer and inspect its outcome.
 
+Requests retain an immutable source snapshot without reading the complete document string. A detached buffer is represented by a private editor sharing that captured source, with bounded grammar-detection input. Providers decide which text they need; providers reading a complete string must check their own protocol budget with `buffer.canMaterializeText(limit)` before calling `getText()`, or consume `getTextSnapshot()` in chunks.
+
 | Field       | Value                                                |
 | ----------- | ---------------------------------------------------- |
 | Version     | `1.0.0`                                              |

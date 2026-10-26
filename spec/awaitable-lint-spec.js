@@ -120,6 +120,14 @@ describe("awaitable linter passes", () => {
     expect(messages()).toEqual([]);
   });
 
+  it("captures lint input as an immutable source without reading the original full text", async () => {
+    const original = buffer();
+    const read = spyOn(original, "getText").and.throwError("full original text read");
+    expect((await instance.lintBuffer(original)).status).toBe("completed");
+    expect(read).not.toHaveBeenCalled();
+    expect(targets.length).toBe(1);
+  });
+
   it("uses the existing pane editor when the buffer is open", async () => {
     const editor = await lumine.workspace.open();
     editor.getBuffer().setPath(filePath);
