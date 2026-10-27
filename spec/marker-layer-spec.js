@@ -367,6 +367,22 @@ describe("linter marker layer", () => {
         expect(provider.getItems(layer)).toBeNull();
       });
 
+      it("retains projected diagnostics when syntax only repaints their rows", () => {
+        layer.cache.set("data", [tracked(2), tracked(10), tracked(20)]);
+        provider.getItems(layer);
+        spyOn(editor, "screenPositionForBufferPosition").and.callThrough();
+        const { Range } = require("lumine");
+        editor.displayLayer.emitter.emit("did-change", [
+          {
+            oldRange: new Range([0, 0], [40, 0]),
+            newRange: new Range([0, 0], [40, 0]),
+            origin: "highlight",
+          },
+        ]);
+        expect(provider.getItems(layer)).toBeNull();
+        expect(editor.screenPositionForBufferPosition).not.toHaveBeenCalled();
+      });
+
       it("reuses unchanged diagnostics recreated by a provider", () => {
         const first = [tracked(2), tracked(10), tracked(20)];
         layer.cache.set("data", first);
