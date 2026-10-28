@@ -158,6 +158,42 @@ describe("clearing diagnostic decorations", () => {
     expectCleared();
   });
 
+  for (const clear of ["command", "hub"])
+    it(`repairs already orphaned decorations through the ${clear} when the registry is empty`, () => {
+      const buffer = editor.getBuffer();
+      const state = buffer.linterUI;
+      const unrelated = buffer.addMarkerLayer().markRange([
+        [0, 0],
+        [0, 1],
+      ]);
+      const snapshots = [
+        ...Object.values(state.severityLayers),
+        ...Object.values(state.tagLayers),
+      ].map((layer) => [layer, layer.createEagerSnapshot()]);
+      main.provideLinterHub().clearMessages();
+      expectCleared();
+      // Reproduce annotations restored by an older core after their provider
+      // forgot them. Clear must recover this state as well as prevent new ones.
+      buffer.transact(() => {
+        for (const [layer, snapshot] of snapshots) {
+          layer.restoreFromSnapshot(snapshot, false);
+          buffer.markerLayersWithPendingUpdateEvents.add(layer);
+        }
+      });
+      expect(main.provideLinterHub().getMessages()).toEqual([]);
+      expect(state.markerMap.size).toBe(0);
+      expect(painted()).toBeGreaterThan(0);
+      if (clear === "command")
+        lumine.commands.dispatch(lumine.workspace.getElement(), "linter:clear");
+      else main.provideLinterHub().clearMessages();
+      expectCleared();
+      expect(unrelated.isDestroyed()).toBe(false);
+      expect(unrelated.getRange()).toEqual([
+        [0, 0],
+        [0, 1],
+      ]);
+    });
+
   it("keeps cleared diagnostics gone when an already accepted Enter finishes preparing", async () => {
     const client = lumine.grammars.syntaxWorkerService.client;
     const request = client.request.bind(client);
