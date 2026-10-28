@@ -1,5 +1,5 @@
-const LinterUI = require("../lib/linter-ui");
-const { normalizeMessages } = require("../lib/helpers");
+let LinterUI;
+let normalizeMessages;
 
 // linter-ui owns the two marker axes: one layer per severity, one per tag. The
 // decorations it registers are *layer* decorations, and editor.getDecorations()
@@ -15,6 +15,9 @@ describe("lib/linter-ui", () => {
   // believes it is invisible skips its update entirely, so a workspace-hosted
   // editor in a headless spec never paints the decorations these specs read.
   beforeEach(async () => {
+    // Earlier lifecycle specs may have unloaded the package's module generation.
+    LinterUI = require("../lib/linter-ui");
+    ({ normalizeMessages } = require("../lib/helpers"));
     const textGrammarPackage = await lumine.packages.activatePackage("language-text");
     await textGrammarPackage.resourceLoadPromise;
     editor = lumine.workspace.buildTextEditor();
@@ -84,6 +87,85 @@ describe("lib/linter-ui", () => {
   });
 
   describe("indexed diagnostic ownership", () => {
+    for (const prepared of [false, true]) {
+      it(`reanchors overlapping snapshot keys after newline edits (${prepared ? "prepared" : "sync"})`, async () => {
+        const MessageRegistry = require("../lib/message-registry");
+        const registry = new MessageRegistry();
+        const provider = { name: "spec" };
+        const subscription = registry.onDidUpdateMessages((change) => ui.render(change));
+        const publishRows = async (rows) => {
+          const messages = rows.map((row) =>
+            message({
+              tags: ["unnecessary"],
+              location: {
+                file: "/spec.js",
+                buffer,
+                position: [
+                  [row, 0],
+                  [row, 5],
+                ],
+              },
+            }),
+          );
+          normalizeMessages("spec", messages, { markerInvalidation: "never" });
+          const request = { messages, linter: provider, buffer };
+          if (prepared)
+            request.preparation = await registry.prepare(request, {
+              current: () => true,
+              yieldIfNeeded: async () => true,
+            });
+          registry.set(request);
+        };
+        const expectRows = (rows) => {
+          for (const row of rows) {
+            expect(ui.getMessagesAtPosition(editor, [row, 2]).length).toBe(1);
+            for (const layer of [
+              buffer.linterUI.severityLayers.hint,
+              buffer.linterUI.tagLayers.unnecessary,
+            ]) {
+              expect(
+                layer.findMarkers({
+                  intersectsRange: [
+                    [row, 1],
+                    [row, 4],
+                  ],
+                }).length,
+              ).toBe(1);
+            }
+          }
+          expect(buffer.linterUI.markerMap.size).toBe(rows.length);
+        };
+        try {
+          editor.setText("header\nc_int\nc_int\nc_int\nc_int\n");
+          await publishRows([1, 2, 3, 4]);
+          buffer.insert([0, 6], "\n\n");
+          expectRows([3, 4, 5, 6]);
+          await publishRows([3, 4, 5, 6]);
+          expectRows([3, 4, 5, 6]);
+          buffer.delete([
+            [0, 6],
+            [2, 0],
+          ]);
+          expectRows([1, 2, 3, 4]);
+          await publishRows([1, 2, 3, 4]);
+          expectRows([1, 2, 3, 4]);
+          // The byte-identical report must also repair a touched, collapsed span.
+          buffer.transact(() => {
+            buffer.delete([
+              [1, 0],
+              [1, 5],
+            ]);
+            buffer.insert([1, 0], "c_int");
+          });
+          await publishRows([1, 2, 3, 4]);
+          expectRows([1, 2, 3, 4]);
+        } finally {
+          subscription.dispose();
+          registry.dispose();
+        }
+      });
+    }
+
     it("keeps anchors and avoids live range reads for an updated canonical extension", () => {
       const original = message({ lspDiagnostic: { data: { version: 1 } } });
       publish([original]);
