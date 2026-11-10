@@ -195,8 +195,8 @@ describe("clearing diagnostic decorations", () => {
     });
 
   it("keeps cleared diagnostics gone when an already accepted Enter finishes preparing", async () => {
-    const client = lumine.grammars.syntaxWorkerService.client;
-    const request = client.request.bind(client);
+    const mode = editor.getBuffer().getLanguageMode();
+    const prepareInputIndentation = mode.prepareInputIndentation.bind(mode);
     let release;
     const gate = new Promise((resolve) => {
       release = resolve;
@@ -205,12 +205,10 @@ describe("clearing diagnostic decorations", () => {
     const preparing = new Promise((resolve) => {
       started = resolve;
     });
-    spyOn(client, "request").and.callFake(async (operation, ...args) => {
-      const result = request(operation, ...args);
-      if (operation === "prepared-indent") {
-        started();
-        await gate;
-      }
+    spyOn(mode, "prepareInputIndentation").and.callFake(async (...args) => {
+      const result = prepareInputIndentation(...args);
+      started();
+      await gate;
       return result;
     });
     editor.setCursorBufferPosition([1, Infinity]);
