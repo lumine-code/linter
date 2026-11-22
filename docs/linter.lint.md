@@ -108,7 +108,7 @@ module.exports = {
 
 ## Behavior
 
-`lintBuffer` reuses an open or explicitly registered editor for the buffer. Otherwise it builds a private editor from the captured text, path, encoding and grammar. A current registered non-fallback grammar is preserved; a missing, fallback or stale grammar is selected from the source path and contents. The pass waits for grammar readiness before matching classic providers. It does not open a pane item, increment the caller's buffer reference count, destroy that buffer, or read or write the source file on disk.
+`lintBuffer` reuses an open or explicitly registered editor for the buffer. Otherwise it builds a private editor from the captured text, path, encoding and grammar when an eligible provider exists. A current registered non-fallback grammar is preserved; a missing, fallback or stale grammar is selected from the source path and contents. Scoped providers match exact cursor scopes. Providers selected to run receive an editor with settled syntax. It does not open a pane item, increment the caller's buffer reference count, destroy that buffer, or read or write the source file on disk.
 
 The private snapshot has a read-only file source whose path identifies the caller's source. Saving, reloading and retargeting that source are rejected. Providers must use the supplied editor's text for current contents; independently reading its path from disk can miss unsaved changes. A snapshot mutation cancels its request. File messages located by the private buffer are remapped to the original buffer before publication, retaining the caller's identity and lifecycle.
 

@@ -108,6 +108,8 @@ Only documents are linted: the pane items open in the workspace, plus any editor
 
 `lint` is called per editor and raced against a 30-second timeout; a linter that overruns it has its result discarded.
 
+The hub checks the trigger and disabled providers before preparing syntax. Scoped providers match one batch of exact cursor scopes. Wildcard providers are eligible independent of those scopes. Every selected provider receives settled syntax.
+
 Changing an editor's grammar immediately retracts every file-scoped provider result for that buffer, discards file results still running under the old grammar, and runs the providers matching the new grammar. This is structural rather than a text change, so it happens even when `lintsOnChange` or the global lint-on-change setting is false. A project-scoped snapshot remains intact when one editor stops matching; a project provider that matches the new grammar replaces it on its next run as usual.
 
 Return `null` or `undefined` to leave the previous messages in place. Return `[]` to clear them.

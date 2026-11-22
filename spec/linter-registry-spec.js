@@ -77,6 +77,141 @@ describe("lib/linter-registry", () => {
     editor.destroy();
   });
 
+  for (const policy of ["unregistered", "disabled", "on-change disabled", "empty grammar scopes"]) {
+    it(`skips syntax preparation with ${policy} providers`, async () => {
+      const editor = await lumine.workspace.open();
+      const settle = spyOn(editor, "whenGrammarSettled");
+      const exact = spyOn(editor, "getScopeDescriptorsForBufferPositions");
+      if (policy === "unregistered") registry.deleteLinter(linter);
+      if (policy === "disabled") registry.setDisabledProviders([linter.name]);
+      if (policy === "on-change disabled") linter.lintsOnChange = false;
+      if (policy === "empty grammar scopes") linter.grammarScopes = [];
+      try {
+        const pass = await registry.lint({ editor, trigger: "change" });
+        expect(pass).toEqual({ status: "completed", reason: null, providers: [] });
+        expect(settle).not.toHaveBeenCalled();
+        expect(exact).not.toHaveBeenCalled();
+      } finally {
+        editor.destroy();
+      }
+    });
+  }
+
+  it("selects wildcard providers without querying scopes and still supplies settled syntax", async () => {
+    const editor = await lumine.workspace.open();
+    const exact = spyOn(editor, "getScopeDescriptorsForBufferPositions");
+    let resolve;
+    spyOn(editor, "whenGrammarSettled").and.returnValue(new Promise((done) => (resolve = done)));
+    try {
+      const pass = registry.lint({ editor });
+      expect(linted).toEqual([]);
+      resolve(true);
+      expect((await pass).status).toBe("completed");
+      expect(linted).toEqual([editor]);
+      expect(exact).not.toHaveBeenCalled();
+    } finally {
+      editor.destroy();
+    }
+  });
+
+  it("selects scoped providers with one exact query over all cursor positions", async () => {
+    const editor = await lumine.workspace.open();
+    editor.setText("first\nsecond");
+    editor.setCursorBufferPosition([0, 1]);
+    editor.addCursorAtBufferPosition([1, 1]);
+    linter.grammarScopes = ["meta.embedded.test"];
+    for (const cursor of editor.getCursors())
+      spyOn(cursor, "getScopeDescriptor").and.throwError("unexpected presentation scope");
+    const exact = spyOn(editor, "getScopeDescriptorsForBufferPositions").and.resolveTo([
+      editor.getRootScopeDescriptor(),
+      { getScopesArray: () => ["meta.embedded.test"] },
+    ]);
+    const settle = spyOn(editor, "whenGrammarSettled").and.resolveTo(true);
+    try {
+      const pass = await registry.lint({ editor });
+      expect(pass.status).toBe("completed");
+      expect(linted).toEqual([editor]);
+      expect(exact).toHaveBeenCalledTimes(1);
+      expect(exact.calls.mostRecent().args[0]).toEqual(editor.getCursorBufferPositions());
+      expect(settle).toHaveBeenCalledTimes(1);
+      expect(exact.calls.mostRecent().args[1].signal).toBe(
+        settle.calls.mostRecent().args[0].signal,
+      );
+    } finally {
+      editor.destroy();
+    }
+  });
+
+  it("leaves unrelated syntax unsettled when exact scopes rule out every provider", async () => {
+    const editor = await lumine.workspace.open();
+    linter.grammarScopes = ["source.unrelated"];
+    const exact = spyOn(editor, "getScopeDescriptorsForBufferPositions").and.resolveTo([
+      editor.getRootScopeDescriptor(),
+    ]);
+    const settle = spyOn(editor, "whenGrammarSettled");
+    try {
+      expect(await registry.lint({ editor })).toEqual({
+        status: "completed",
+        reason: null,
+        providers: [],
+      });
+      expect(exact).toHaveBeenCalledTimes(1);
+      expect(settle).not.toHaveBeenCalled();
+    } finally {
+      editor.destroy();
+    }
+  });
+
+  it("cancels a pending scope lookup before invoking any provider", async () => {
+    const editor = await lumine.workspace.open();
+    linter.grammarScopes = ["meta.embedded.test"];
+    let resolve;
+    const exact = spyOn(editor, "getScopeDescriptorsForBufferPositions").and.returnValue(
+      new Promise((done) => (resolve = done)),
+    );
+    const settle = spyOn(editor, "whenGrammarSettled");
+    const controller = new AbortController();
+    try {
+      const pass = registry.lint({ editor, signal: controller.signal });
+      controller.abort();
+      expect((await pass).status).toBe("cancelled");
+      expect(exact.calls.mostRecent().args[1].signal.aborted).toBeTrue();
+      resolve([{ getScopesArray: () => ["meta.embedded.test"] }]);
+      await Promise.resolve();
+      expect(linted).toEqual([]);
+      expect(settle).not.toHaveBeenCalled();
+    } finally {
+      editor.destroy();
+    }
+  });
+
+  it("rechecks exact scopes if the cursor moves while provider readiness is pending", async () => {
+    const editor = await lumine.workspace.open();
+    editor.setText("first\nsecond");
+    editor.setCursorBufferPosition([0, 0]);
+    linter.grammarScopes = ["meta.embedded.test"];
+    const exact = spyOn(editor, "getScopeDescriptorsForBufferPositions").and.callFake(
+      async ([position]) => [
+        { getScopesArray: () => (position.row === 0 ? ["meta.embedded.test"] : ["text.plain"]) },
+      ],
+    );
+    let resolve;
+    const settle = spyOn(editor, "whenGrammarSettled").and.returnValue(
+      new Promise((done) => (resolve = done)),
+    );
+    try {
+      const pass = registry.lint({ editor });
+      await conditionPromise(() => settle.calls.any());
+      editor.setCursorBufferPosition([1, 0]);
+      resolve(true);
+      expect((await pass).providers).toEqual([]);
+      expect(linted).toEqual([]);
+      expect(exact).toHaveBeenCalledTimes(2);
+    } finally {
+      editor.destroy();
+    }
+  });
+
   it("still skips a path the ignore glob matches", async () => {
     const editor = await lumine.workspace.open(__filename);
     spyOn(require("../lib/helpers"), "matchesIgnoreGlob").and.returnValue(true);
